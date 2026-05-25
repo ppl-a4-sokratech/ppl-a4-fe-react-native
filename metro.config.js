@@ -17,4 +17,9 @@ config.resolver.extraNodeModules = {
   'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
 };
 
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(sdkRoot, 'node_modules'),
+];
+
 module.exports = config;
