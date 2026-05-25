@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   SafeAreaView,
@@ -9,7 +10,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { sdk } from './sdk/sdk';
+import type { SokratechSDK } from 'ppl-a4-sdk-react-native';
+import { sdkReady } from './sdk/sdk';
 import { colors } from './components/ui';
 import { FingerprintDemo } from './components/FingerprintDemo';
 import { BehavioralDemo } from './components/BehavioralDemo';
@@ -18,11 +20,15 @@ import { DetectionDemo } from './components/DetectionDemo';
 import { AnalyzerDemo } from './components/AnalyzerDemo';
 import { LoginDemo } from './components/LoginDemo';
 import { RegisterDemo } from './components/RegisterDemo';
+import { ConfigDemo } from './components/ConfigDemo';
+import { FlushDemo } from './components/FlushDemo';
 
 const TABS = [
+  'config',
   'behavioral',
   'fingerprint',
   'detection',
+  'flush',
   'analyzer',
   'register',
   'login',
@@ -32,7 +38,17 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 
 export default function App() {
-  const [active, setActive] = useState<Tab>('behavioral');
+  const [sdk, setSdk] = useState<SokratechSDK | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [active, setActive] = useState<Tab>('config');
+
+  useEffect(() => {
+    sdkReady
+      .then(setSdk)
+      .catch((e) =>
+        setInitError(e instanceof Error ? e.message : 'SDK init failed')
+      );
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -41,47 +57,70 @@ export default function App() {
         <View style={styles.header}>
           <Text style={styles.title}>Sokratech SDK</Text>
           <Text style={styles.subtitle}>
-            PoC React Native — Behavioral, Fingerprint & Profiling
+            PoC React Native end-to-end with backend ingest
           </Text>
           <View style={styles.metaRow}>
             <Text style={styles.meta}>
-              {sdk.isInitialized() ? '● initialized' : '○ not initialized'}
+              {sdk?.isInitialized() ? 'initialized' : 'initializing...'}
             </Text>
             <Text style={styles.meta}>platform: {Platform.OS}</Text>
           </View>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabBar}
-          contentContainerStyle={styles.tabBarInner}
-        >
-          {TABS.map((tab) => {
-            const isActive = tab === active;
-            return (
-              <Pressable
-                key={tab}
-                onPress={() => setActive(tab)}
-                style={[styles.tab, isActive && styles.tabActive]}
-              >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {initError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>SDK init error: {initError}</Text>
+          </View>
+        )}
 
-        <View style={styles.main}>
-          {active === 'behavioral' && <BehavioralDemo />}
-          {active === 'fingerprint' && <FingerprintDemo />}
-          {active === 'detection' && <DetectionDemo />}
-          {active === 'analyzer' && <AnalyzerDemo />}
-          {active === 'register' && <RegisterDemo />}
-          {active === 'login' && <LoginDemo />}
-          {active === 'profiling' && <ProfilingDemo />}
-        </View>
+        {!sdk && !initError && (
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.loadingText}>
+              Initializing SDK (fetching recipes from backend)...
+            </Text>
+          </View>
+        )}
+
+        {sdk && (
+          <>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabBar}
+              contentContainerStyle={styles.tabBarInner}
+            >
+              {TABS.map((tab) => {
+                const isActive = tab === active;
+                return (
+                  <Pressable
+                    key={tab}
+                    onPress={() => setActive(tab)}
+                    style={[styles.tab, isActive && styles.tabActive]}
+                  >
+                    <Text
+                      style={[styles.tabText, isActive && styles.tabTextActive]}
+                    >
+                      {tab}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.main}>
+              {active === 'config' && <ConfigDemo sdk={sdk} />}
+              {active === 'behavioral' && <BehavioralDemo sdk={sdk} />}
+              {active === 'fingerprint' && <FingerprintDemo sdk={sdk} />}
+              {active === 'detection' && <DetectionDemo sdk={sdk} />}
+              {active === 'flush' && <FlushDemo sdk={sdk} />}
+              {active === 'analyzer' && <AnalyzerDemo />}
+              {active === 'register' && <RegisterDemo />}
+              {active === 'login' && <LoginDemo />}
+              {active === 'profiling' && <ProfilingDemo sdk={sdk} />}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -119,4 +158,13 @@ const styles = StyleSheet.create({
   },
   tabTextActive: { color: '#fff' },
   main: { width: '100%' },
+  loading: { alignItems: 'center', padding: 24, gap: 12 },
+  loadingText: { fontSize: 13, color: colors.muted, textAlign: 'center' },
+  errorBanner: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600' },
 });

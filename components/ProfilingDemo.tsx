@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { ProfileMetric } from 'ppl-a4-sdk-react-native';
-import { sdk } from '../sdk/sdk';
+import type { ProfileMetric, SokratechSDK } from 'ppl-a4-sdk-react-native';
 import { Badge, Button, Card, colors, Paragraph, SectionTitle } from './ui';
 
-export function ProfilingDemo() {
+export function ProfilingDemo({ sdk }: { sdk: SokratechSDK }) {
   const [metrics, setMetrics] = useState<ProfileMetric[]>(() =>
     sdk.getProfileMetrics()
   );
