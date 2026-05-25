@@ -7,6 +7,11 @@ import {
   getNetworkData,
   getScreenData,
 } from 'ppl-a4-sdk-react-native';
+import {
+  getMobileHardwareData,
+  getMobileNetworkData,
+  getMobileScreenData,
+} from '../shim/fingerprint-mobile';
 import { sdk } from '../sdk/sdk';
 import {
   Badge,
@@ -39,19 +44,11 @@ export function FingerprintDemo() {
     setError(null);
     try {
       sdk.profiler.start('fingerprint.collect');
-      const [audio, canvas] = await Promise.all([
-        getAudioFingerprint(),
-        getCanvasFingerprint(),
-      ]);
-      const result: Fingerprint = {
-        timestamp: Date.now(),
-        audio,
-        canvas,
-        hardware: getHardwareData(),
-        network: getNetworkData(),
-        screen: getScreenData(),
-      };
-      sdk.profiler.end('fingerprint.collect', { surfaces: 5 });
+      const result = isWeb ? await collectWeb() : await collectMobile();
+      sdk.profiler.end('fingerprint.collect', {
+        platform: Platform.OS,
+        surfaces: isWeb ? 5 : 3,
+      });
       setData(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to collect fingerprint');
@@ -62,29 +59,24 @@ export function FingerprintDemo() {
 
   return (
     <Card>
-      <SectionTitle>Fingerprint Collection</SectionTitle>
+      <View style={styles.titleRow}>
+        <SectionTitle>Fingerprint Collection</SectionTitle>
+        <Badge
+          label={isWeb ? 'Web surfaces' : 'Mobile shim'}
+          tone={isWeb ? 'neutral' : 'success'}
+        />
+      </View>
       <Paragraph>
-        Mengumpulkan device fingerprint dari audio context, canvas rendering,
-        hardware, network, dan properti layar. Surface ini memakai Web API,
-        jadi hanya aktif saat dijalankan di web.
+        {isWeb
+          ? 'Web: audio context + canvas + navigator/screen data lewat SDK fingerprint primitives.'
+          : 'Mobile: hardware + network + screen lewat expo-device + Dimensions (audio/canvas tidak tersedia native).'}
       </Paragraph>
 
-      {!isWeb ? (
-        <View style={styles.notice}>
-          <Badge label="Web-only" tone="warning" />
-          <Text style={styles.noticeText}>
-            Fingerprint surface SDK saat ini berbasis Web API (canvas, audio,
-            navigator) sehingga belum tersedia di native. Buka PoC ini lewat
-            Expo Web untuk mencoba.
-          </Text>
-        </View>
-      ) : (
-        <Button
-          label={loading ? 'Collecting…' : 'Collect Fingerprint'}
-          onPress={collect}
-          disabled={loading}
-        />
-      )}
+      <Button
+        label={loading ? 'Collecting…' : 'Collect Fingerprint'}
+        onPress={collect}
+        disabled={loading}
+      />
 
       {error && <Text style={styles.error}>Error: {error}</Text>}
 
@@ -93,8 +85,8 @@ export function FingerprintDemo() {
           <Text style={styles.subheading}>
             Collected at {new Date(data.timestamp).toLocaleTimeString()}
           </Text>
-          <Component title="Audio" value={data.audio} />
-          <Component title="Canvas" value={data.canvas} />
+          <Component title="Audio" value={data.audio} platformOnly={isWeb ? null : 'web'} />
+          <Component title="Canvas" value={data.canvas} platformOnly={isWeb ? null : 'web'} />
           <Component title="Hardware" value={data.hardware} />
           <Component title="Network" value={data.network} />
           <Component title="Screen" value={data.screen} />
@@ -104,34 +96,77 @@ export function FingerprintDemo() {
   );
 }
 
-function Component({ title, value }: { title: string; value: unknown }) {
+async function collectWeb(): Promise<Fingerprint> {
+  const [audio, canvas] = await Promise.all([
+    getAudioFingerprint(),
+    getCanvasFingerprint(),
+  ]);
+  return {
+    timestamp: Date.now(),
+    audio,
+    canvas,
+    hardware: getHardwareData(),
+    network: getNetworkData(),
+    screen: getScreenData(),
+  };
+}
+
+async function collectMobile(): Promise<Fingerprint> {
+  return {
+    timestamp: Date.now(),
+    audio: null,
+    canvas: null,
+    hardware: getMobileHardwareData(),
+    network: getMobileNetworkData(),
+    screen: getMobileScreenData(),
+  };
+}
+
+function Component({
+  title,
+  value,
+  platformOnly,
+}: {
+  title: string;
+  value: unknown;
+  platformOnly?: 'web' | 'mobile' | null;
+}) {
   const available = value !== null && value !== undefined;
   return (
     <View style={styles.component}>
       <View style={styles.componentHeader}>
         <Text style={styles.componentTitle}>{title}</Text>
         <Badge
-          label={available ? 'OK' : 'N/A'}
+          label={
+            available
+              ? 'OK'
+              : platformOnly === 'web'
+                ? 'Web-only'
+                : 'N/A'
+          }
           tone={available ? 'success' : 'neutral'}
         />
       </View>
       {available ? (
         <CodeBlock data={value} />
       ) : (
-        <Text style={styles.naText}>Not available on this platform</Text>
+        <Text style={styles.naText}>
+          {platformOnly === 'web'
+            ? 'Surface ini butuh Web API (audio context / canvas) yang tidak tersedia di native.'
+            : 'Not available on this platform'}
+        </Text>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  notice: {
-    backgroundColor: colors.warningSoft,
-    borderRadius: 10,
-    padding: 14,
-    gap: 8,
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  noticeText: { fontSize: 13, color: colors.warning, lineHeight: 19 },
   error: { color: colors.danger, fontWeight: '600', marginTop: 8 },
   subheading: {
     fontSize: 14,
