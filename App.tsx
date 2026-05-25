@@ -10,8 +10,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { SokratechSDK } from 'ppl-a4-sdk-react-native';
-import { sdkReady } from './sdk/sdk';
+import type {
+  SokratechConfig,
+  SokratechSDK,
+} from 'ppl-a4-sdk-react-native';
+import { buildConfig, defaultApiDomain, initSdk } from './sdk/sdk';
 import { colors } from './components/ui';
 import { FingerprintDemo } from './components/FingerprintDemo';
 import { BehavioralDemo } from './components/BehavioralDemo';
@@ -37,18 +40,34 @@ const TABS = [
 
 type Tab = (typeof TABS)[number];
 
+const INITIAL_CONFIG: SokratechConfig = buildConfig({
+  apiDomain: defaultApiDomain,
+  workflowId: '',
+  profileId: '',
+});
+
 export default function App() {
+  const [config, setConfig] = useState<SokratechConfig>(INITIAL_CONFIG);
   const [sdk, setSdk] = useState<SokratechSDK | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [active, setActive] = useState<Tab>('config');
 
   useEffect(() => {
-    sdkReady
-      .then(setSdk)
-      .catch((e) =>
-        setInitError(e instanceof Error ? e.message : 'SDK init failed')
-      );
-  }, []);
+    let cancelled = false;
+    setInitError(null);
+    setSdk(null);
+    initSdk(config)
+      .then((instance) => {
+        if (!cancelled) setSdk(instance);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setInitError(e instanceof Error ? e.message : 'SDK init failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [config]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -109,7 +128,9 @@ export default function App() {
             </ScrollView>
 
             <View style={styles.main}>
-              {active === 'config' && <ConfigDemo sdk={sdk} />}
+              {active === 'config' && (
+                <ConfigDemo sdk={sdk} onApplyConfig={setConfig} />
+              )}
               {active === 'behavioral' && <BehavioralDemo sdk={sdk} />}
               {active === 'fingerprint' && <FingerprintDemo sdk={sdk} />}
               {active === 'detection' && <DetectionDemo sdk={sdk} />}
