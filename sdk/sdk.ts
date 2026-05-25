@@ -6,7 +6,6 @@ const workflowId = env.EXPO_PUBLIC_SOKRATECH_WORKFLOW_ID;
 const profileId = env.EXPO_PUBLIC_SOKRATECH_PROFILE_ID;
 
 export const sdkConfig: SokratechConfig = {
-  apiKey: env.EXPO_PUBLIC_SOKRATECH_API_KEY ?? 'demo-api-key',
   apiDomain: env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN ?? 'http://localhost:3000',
   workflowId,
   profileId,
