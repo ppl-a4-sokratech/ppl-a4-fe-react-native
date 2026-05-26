@@ -4,7 +4,8 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "ppl-a4-sdk-react-native": ["../ppl-a4-sdk-react-native/src/index"]
+      "ppl-a4-sdk-react-native": ["../ppl-a4-sdk-react-native/src/index"],
+      "ppl-a4-sdk-react-native/*": ["../ppl-a4-sdk-react-native/src/*"]
     }
   }
 }
