@@ -30,7 +30,7 @@ export function FlushDemo({ sdk }: { sdk: SokratechSDK }) {
   return (
     <Card>
       <View style={styles.titleRow}>
-        <SectionTitle>Flush to Backend</SectionTitle>
+        <SectionTitle>Flush</SectionTitle>
         {response && (
           <Badge
             label={response.ok ? `${response.status} OK` : `${response.status} fail`}
@@ -39,13 +39,12 @@ export function FlushDemo({ sdk }: { sdk: SokratechSDK }) {
         )}
       </View>
       <Paragraph>
-        Drains behavioral events, collects fingerprint, runs detection, packs
-        them into one ingest request, and POSTs to /ingest. The backend
-        forwards to analyze-service and returns a decision plus signal flags.
+        Bundle behavior + fingerprint + detection and POST to /ingest. Returns
+        the backend decision.
       </Paragraph>
 
       <Button
-        label={loading ? 'Flushing...' : 'Flush to /ingest'}
+        label={loading ? 'Flushing...' : 'Flush'}
         onPress={flush}
         disabled={loading}
       />

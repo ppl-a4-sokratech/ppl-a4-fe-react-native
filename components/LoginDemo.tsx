@@ -4,12 +4,12 @@ export function LoginDemo() {
   return (
     <ComingSoon
       title="Login"
-      description="Form login yang mengirim fingerprint + sinyal behavioral ke backend untuk verifikasi risiko saat autentikasi."
+      description="Login form that ships fingerprint + behavioral signals on submit."
       bullets={[
-        'Capture behavioral saat user mengetik kredensial',
-        'Lampirkan fingerprint perangkat ke request login',
-        'Kirim ke endpoint auth via API client SDK',
-        'Tampilkan keputusan risk-based auth',
+        'Capture typing behavior on credentials',
+        'Attach device fingerprint to request',
+        'Send via SDK ingest client',
+        'Show risk-based auth decision',
       ]}
     />
   );

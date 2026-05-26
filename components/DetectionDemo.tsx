@@ -32,20 +32,18 @@ export function DetectionDemo({ sdk }: { sdk: SokratechSDK }) {
   return (
     <Card>
       <View style={styles.titleRow}>
-        <SectionTitle>Bot / Automation Detection</SectionTitle>
+        <SectionTitle>Detection</SectionTitle>
         <Badge
           label={isWeb ? 'webDriver' : 'emulator'}
           tone={hasDetection ? 'success' : 'neutral'}
         />
       </View>
       <Paragraph>
-        Runs via SDK DetectionCollector. On web, detects automation via
-        navigator.webdriver and other markers. On mobile, detects emulator via
-        react-native-device-info.
+        Check for emulator (mobile) or webDriver (web) markers via SDK.
       </Paragraph>
 
       <Button
-        label={loading ? 'Running...' : 'Run Detection'}
+        label={loading ? 'Running...' : 'Run'}
         onPress={run}
         disabled={loading || !hasDetection}
       />

@@ -16,10 +16,9 @@ export function ProfilingDemo({ sdk }: { sdk: SokratechSDK }) {
 
   return (
     <Card>
-      <SectionTitle>SDK Performance Profiling</SectionTitle>
+      <SectionTitle>Profiling</SectionTitle>
       <Paragraph>
-        Mencatat timing tiap operasi internal SDK (inisialisasi, fingerprint
-        collect, behavioral drain). Picu aksi di tab lain lalu refresh di sini.
+        Internal SDK timings. Trigger actions in other tabs, then refresh.
       </Paragraph>
 
       <View style={styles.toolbar}>
@@ -32,10 +31,7 @@ export function ProfilingDemo({ sdk }: { sdk: SokratechSDK }) {
 
       {metrics.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Belum ada metric.</Text>
-          <Text style={styles.emptyHint}>
-            Jalankan operasi di tab Fingerprint atau Behavioral, lalu Refresh.
-          </Text>
+          <Text style={styles.emptyText}>No metrics yet.</Text>
         </View>
       ) : (
         <View style={styles.table}>

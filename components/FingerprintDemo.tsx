@@ -42,21 +42,16 @@ export function FingerprintDemo({ sdk }: { sdk: SokratechSDK }) {
   return (
     <Card>
       <View style={styles.titleRow}>
-        <SectionTitle>Fingerprint Collection</SectionTitle>
+        <SectionTitle>Fingerprint</SectionTitle>
         <Badge
-          label={isWeb ? 'Web surfaces' : 'Native surfaces'}
+          label={isWeb ? 'web' : 'native'}
           tone={hasFingerprint ? 'success' : 'neutral'}
         />
       </View>
-      <Paragraph>
-        Collects via SDK FingerprintCollector. Web fills audio, canvas,
-        graphics, fonts, device, and screen. Mobile fills device (via
-        react-native-device-info) and screen, while audio / canvas / graphics
-        return null.
-      </Paragraph>
+      <Paragraph>Collect device fingerprint via SDK.</Paragraph>
 
       <Button
-        label={loading ? 'Collecting...' : 'Collect Fingerprint'}
+        label={loading ? 'Collecting...' : 'Collect'}
         onPress={collect}
         disabled={loading || !hasFingerprint}
       />

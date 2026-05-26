@@ -137,16 +137,13 @@ export function ComingSoon({
       </View>
       <Paragraph>{description}</Paragraph>
       <View style={styles.soonBox}>
-        <Text style={styles.soonBoxTitle}>Planned SDK integration</Text>
+        <Text style={styles.soonBoxTitle}>Planned</Text>
         {bullets.map((b) => (
           <Text key={b} style={styles.soonBullet}>
             {'•'}  {b}
           </Text>
         ))}
       </View>
-      <Text style={styles.soonNote}>
-        UI sudah siap. Hook ke SDK menyusul setelah modul ini diimplementasikan.
-      </Text>
     </Card>
   );
 }

@@ -43,10 +43,9 @@ export function ConfigDemo({ sdk, onApplyConfig }: ConfigDemoProps) {
           />
         </View>
         <Paragraph>
-          Set the API domain and the workflow + profile IDs from the admin
-          portal. When both IDs are present the SDK fetches recipes via GET
-          /sdk/v1/config; otherwise it uses local all-true defaults. Apply
-          reinitializes the SDK with the new config.
+          Enter the API domain and workflow + profile IDs from the admin
+          portal. With both IDs set, the SDK fetches recipes from the backend.
+          Leave blank to use local defaults.
         </Paragraph>
 
         <Text style={styles.fieldLabel}>API domain</Text>
@@ -82,14 +81,12 @@ export function ConfigDemo({ sdk, onApplyConfig }: ConfigDemoProps) {
           placeholderTextColor={colors.muted}
         />
 
-        <Button label="Apply and Reinitialize" onPress={handleApply} />
+        <Button label="Apply" onPress={handleApply} />
       </Card>
 
       <Card>
-        <SectionTitle>Resolved State</SectionTitle>
-        <Paragraph>
-          What the SDK is currently running with after the last init.
-        </Paragraph>
+        <SectionTitle>Resolved</SectionTitle>
+        <Paragraph>Active SDK config after the last init.</Paragraph>
 
         <Text style={styles.label}>API domain</Text>
         <Text style={styles.value}>{current.apiDomain}</Text>

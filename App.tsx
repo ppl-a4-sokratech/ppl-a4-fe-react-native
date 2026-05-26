@@ -76,7 +76,7 @@ export default function App() {
         <View style={styles.header}>
           <Text style={styles.title}>Sokratech SDK</Text>
           <Text style={styles.subtitle}>
-            PoC React Native end-to-end with backend ingest
+            React Native PoC with end-to-end backend ingest
           </Text>
           <View style={styles.metaRow}>
             <Text style={styles.meta}>
@@ -96,7 +96,7 @@ export default function App() {
           <View style={styles.loading}>
             <ActivityIndicator color={colors.primary} />
             <Text style={styles.loadingText}>
-              Initializing SDK (fetching recipes from backend)...
+              Initializing SDK and fetching recipes...
             </Text>
           </View>
         )}

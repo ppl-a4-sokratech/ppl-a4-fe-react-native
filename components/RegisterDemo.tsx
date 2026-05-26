@@ -4,12 +4,12 @@ export function RegisterDemo() {
   return (
     <ComingSoon
       title="Register"
-      description="Form registrasi yang menanamkan device fingerprint dan profil behavioral awal untuk mencegah pembuatan akun massal oleh bot."
+      description="Sign-up form that baselines device + behavioral profile."
       bullets={[
-        'Fingerprint perangkat saat sign-up',
-        'Profil behavioral baseline pengguna baru',
-        'Deteksi pendaftaran otomatis / duplikat',
-        'Kirim ke endpoint register via API client SDK',
+        'Fingerprint at sign-up time',
+        'Baseline behavioral profile',
+        'Detect mass / automated signup',
+        'Send via SDK ingest client',
       ]}
     />
   );

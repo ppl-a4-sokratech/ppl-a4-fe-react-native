@@ -100,11 +100,8 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
   if (!collector) {
     return (
       <Card>
-        <SectionTitle>Behavioral Tracking</SectionTitle>
-        <Paragraph>
-          Behavioral recipe is disabled in the resolved config. Enable it in
-          the admin portal or in the local fallback to see signals here.
-        </Paragraph>
+        <SectionTitle>Behavioral</SectionTitle>
+        <Paragraph>Recipe disabled.</Paragraph>
       </Card>
     );
   }
@@ -145,13 +142,11 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
     <View>
       <Card>
         <View style={styles.titleRow}>
-          <SectionTitle>Behavioral Tracking</SectionTitle>
+          <SectionTitle>Behavioral</SectionTitle>
           <Badge label="SDK collector" tone="success" />
         </View>
         <Paragraph>
-          Trackers wired via SDK BehavioralCollector. Touch, scroll, and input
-          work on both web and mobile. Drag, lifecycle, and sensor add mobile
-          coverage. Drain returns a single BehavioralPayload.
+          Interact below to record events, then drain the buffer.
         </Paragraph>
 
         <View
@@ -159,16 +154,11 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          <Text style={styles.touchpadText}>
-            Tap / hold / swipe in this area
-          </Text>
-          <Text style={styles.touchpadHint}>
-            Tap less than 300ms = tap, hold = longPress, swipe = drag
-          </Text>
+          <Text style={styles.touchpadText}>Tap / hold / drag</Text>
         </View>
 
         <TextInput
-          placeholder="Type to feed InputTracker..."
+          placeholder="Type here..."
           placeholderTextColor={colors.muted}
           style={styles.input}
           onFocus={() => collector.inputTracker?.onFocus('demo-field')}
@@ -176,9 +166,9 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
         />
 
         <View style={styles.buttonRow}>
-          <Button label="Drain Events" onPress={drain} />
+          <Button label="Drain" onPress={drain} />
           <Button
-            label="Simulate Background"
+            label="Simulate background"
             variant="secondary"
             onPress={simulateLifecycle}
           />
@@ -205,10 +195,8 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
       </Card>
 
       <Card>
-        <SectionTitle>Scroll Capture Area</SectionTitle>
-        <Paragraph>
-          Scroll inside this box to feed ScrollTracker.
-        </Paragraph>
+        <SectionTitle>Scroll</SectionTitle>
+        <Paragraph>Scroll inside the box to record scroll events.</Paragraph>
         <ScrollView
           style={styles.scrollBox}
           onScroll={onScroll}
@@ -217,7 +205,7 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
         >
           {Array.from({ length: 20 }).map((_, i) => (
             <Text key={i} style={styles.scrollLine}>
-              Line {i + 1}: scroll up and down
+              Line {i + 1}
             </Text>
           ))}
         </ScrollView>
@@ -225,20 +213,20 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
 
       <Card>
         <View style={styles.titleRow}>
-          <SectionTitle>Sensor Stream</SectionTitle>
+          <SectionTitle>Sensor</SectionTitle>
           <Badge
             label={
-              isWeb ? 'Web: skipped' : sensorActive ? 'Active' : 'Unavailable'
+              isWeb ? 'web: skipped' : sensorActive ? 'active' : 'unavailable'
             }
             tone={sensorActive ? 'success' : 'neutral'}
           />
         </View>
         <Paragraph>
           {isWeb
-            ? 'Accelerometer / gyroscope are mobile-only and skipped on web.'
+            ? 'Sensors are mobile-only.'
             : sensorActive
-              ? 'Sampling at 4Hz via expo-sensors. Shake or tilt the device for 3-5 seconds, then drain.'
-              : 'Sensors unavailable on this device.'}
+              ? 'Shake or tilt the device, then drain.'
+              : 'Sensors not available on this device.'}
         </Paragraph>
       </Card>
     </View>
