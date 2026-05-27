@@ -40,6 +40,8 @@ EXPO_PUBLIC_SOKRATECH_API_DOMAIN=http://localhost:3000
 
 Point this at your local `ppl-a4-api-be`, or a staging URL. For physical mobile devices, replace `localhost` with the LAN IP of the machine running the backend.
 
+The env var is used for native (Android/iOS) and local web dev. On Vercel-deployed web, `vercel.json` rewrites `/api/proxy/*` to the backend over HTTP server-side, so the browser only sees same-origin HTTPS requests (no mixed content). When the env var is unset on web, the SDK defaults to `${origin}/api/proxy`.
+
 Workflow + profile IDs are entered at runtime in the Config tab, not via env vars.
 
 The SDK is consumed from npm as `@ppl-sokratech-sdk/ppl-a4-sdk-react-native`. Bumping the SDK version is a regular `npm install` of the new version.
@@ -129,6 +131,14 @@ Only one env var is supported.
 EXPO_PUBLIC_SOKRATECH_API_DOMAIN=<backend-domain>
 ```
 
+Resolution order in [sdk/sdk.ts](sdk/sdk.ts):
+
+1. `EXPO_PUBLIC_SOKRATECH_API_DOMAIN` if set (inlined by `babel-preset-expo` at build time).
+2. On web in a browser, `${window.location.origin}/api/proxy` (paired with `vercel.json` rewrites).
+3. `http://localhost:3000` as native dev fallback.
+
+On Vercel, set the env var to `/api/proxy` (or leave it unset and let the SDK default to it). The backend origin is declared in [vercel.json](vercel.json) so it stays out of the client bundle.
+
 ## Project structure
 
 ```
@@ -148,6 +158,7 @@ metro.config.js                 # default Expo config
 .env.example                    # EXPO_PUBLIC_SOKRATECH_API_DOMAIN only
 app.json                        # Expo config
 eas.json                        # EAS Build profiles
+vercel.json                     # web rewrites: /api/proxy/* -> backend (avoids HTTPS mixed content)
 ```
 
 ## Scripts
