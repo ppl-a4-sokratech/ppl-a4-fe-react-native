@@ -1,7 +1,17 @@
+import { Platform } from 'react-native';
 import { SokratechSDK, type SokratechConfig } from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 
-export const defaultApiDomain =
-  process.env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN ?? 'http://localhost:3000';
+function resolveApiDomain(): string {
+  if (process.env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN) {
+    return process.env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN;
+  }
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/api/proxy`;
+  }
+  return 'http://localhost:3000';
+}
+
+export const defaultApiDomain = resolveApiDomain();
 
 const LOCAL_RECIPES = {
   behavioral: {
