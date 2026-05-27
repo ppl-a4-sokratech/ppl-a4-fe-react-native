@@ -15,7 +15,7 @@ import {
   useSokratech,
   type SokratechConfig,
 } from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
-import { buildConfig } from './sdk/sdk';
+import { buildConfig, defaultApiDomain } from './sdk/sdk';
 import { colors } from './components/ui';
 import { FingerprintDemo } from './components/FingerprintDemo';
 import { BehavioralDemo } from './components/BehavioralDemo';
@@ -85,6 +85,7 @@ function AppShell({
             </Text>
             <Text style={styles.meta}>platform: {Platform.OS}</Text>
           </View>
+          <Text style={styles.meta}>api: {defaultApiDomain}</Text>
         </View>
 
         {initError && (
