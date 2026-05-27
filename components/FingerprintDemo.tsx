@@ -63,10 +63,10 @@ export function FingerprintDemo({ sdk }: { sdk: SokratechSDK }) {
           <Text style={styles.subheading}>
             Collected at {new Date(data.timestamp).toLocaleTimeString()}
           </Text>
-          <Surface title="Audio" value={data.audio} webOnly />
-          <Surface title="Canvas" value={data.canvas} webOnly />
-          <Surface title="Graphics" value={data.graphics} webOnly />
-          <Surface title="Fonts" value={data.fonts} webOnly />
+          <Surface title="Audio" value={data.audio} />
+          <Surface title="Canvas" value={data.canvas} />
+          <Surface title="Graphics" value={data.graphics} />
+          <Surface title="Fonts" value={data.fonts} />
           <Surface title="Device" value={data.device} />
           <Surface title="Screen" value={data.screen} />
         </View>
@@ -75,35 +75,21 @@ export function FingerprintDemo({ sdk }: { sdk: SokratechSDK }) {
   );
 }
 
-function Surface({
-  title,
-  value,
-  webOnly,
-}: {
-  title: string;
-  value: unknown;
-  webOnly?: boolean;
-}) {
+function Surface({ title, value }: { title: string; value: unknown }) {
   const available = value !== null && value !== undefined;
   return (
     <View style={styles.surface}>
       <View style={styles.surfaceHeader}>
         <Text style={styles.surfaceTitle}>{title}</Text>
         <Badge
-          label={
-            available ? 'OK' : webOnly && !isWeb ? 'Web-only' : 'N/A'
-          }
+          label={available ? 'OK' : 'N/A'}
           tone={available ? 'success' : 'neutral'}
         />
       </View>
       {available ? (
         <CodeBlock data={value} />
       ) : (
-        <Text style={styles.naText}>
-          {webOnly && !isWeb
-            ? 'Surface requires Web APIs not available in native.'
-            : 'Not available on this platform.'}
-        </Text>
+        <Text style={styles.naText}>Not available on this platform.</Text>
       )}
     </View>
   );
