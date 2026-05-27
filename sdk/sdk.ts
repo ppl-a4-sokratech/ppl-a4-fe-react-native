@@ -1,9 +1,7 @@
 import { SokratechSDK, type SokratechConfig } from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 
-const env = (process.env ?? {}) as Record<string, string | undefined>;
-
 export const defaultApiDomain =
-  env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN ?? 'http://localhost:3000';
+  process.env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN ?? 'http://localhost:3000';
 
 const LOCAL_RECIPES = {
   behavioral: {
