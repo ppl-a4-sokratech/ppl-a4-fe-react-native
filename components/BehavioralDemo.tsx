@@ -67,6 +67,11 @@ export function BehavioralDemo() {
           <Text style={styles.touchpadHint}>
             quick tap = tap, hold = longPress, swipe = drag
           </Text>
+          {isWeb && (
+            <Text style={styles.touchpadHint}>
+              hover here to record cursor moves
+            </Text>
+          )}
         </TrackedPressable>
 
         <TrackedTextInput
@@ -99,6 +104,12 @@ export function BehavioralDemo() {
             <View style={styles.statRow}>
               <Stat label="Lifecycle" value={payload.lifecycleEvents.length} />
               <Stat label="Sensor" value={payload.sensorEvents.length} />
+              {isWeb && (
+                <>
+                  <Stat label="Move" value={payload.moveEvents?.length ?? 0} />
+                  <Stat label="Keys" value={payload.keyEvents?.length ?? 0} />
+                </>
+              )}
             </View>
             <CodeBlock data={payload} />
           </View>
