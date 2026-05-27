@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { SokratechSDK } from 'ppl-a4-sdk-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  TrackedTextInput,
+  useBehavioral,
+  useFingerprint,
+  useFlushIngest,
+  useSokratech,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import { Button, Card, colors, SectionTitle } from './ui';
 
 interface IngestResponseData {
@@ -36,7 +42,12 @@ function createMockResponse(): IngestResponseData {
   };
 }
 
-export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
+export function LoginDemo() {
+  const { sdk } = useSokratech();
+  const { drain } = useBehavioral();
+  const { collect } = useFingerprint();
+  const { flush } = useFlushIngest();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,8 +60,8 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    sdk.drainBehavioralEvents();
-  }, [sdk]);
+    drain();
+  }, [drain]);
 
   const toggleCache = async (next: boolean) => {
     setUseCache(next);
@@ -58,7 +69,7 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
     if (next) {
       setWarming(true);
       try {
-        await sdk.collectFingerprint(true);
+        await collect(true);
         setCacheWarmed(true);
       } finally {
         setWarming(false);
@@ -70,6 +81,7 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
     typeof performance !== 'undefined' ? performance.now() : Date.now();
 
   const submit = async () => {
+    if (!sdk) return;
     setLoading(true);
     setResult(null);
     setTiming(null);
@@ -80,7 +92,7 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
       const analyzeMs = 0;
 
       const t0Fp = now();
-      await sdk.collectFingerprint(!useCache);
+      await collect(!useCache);
       const fingerprintMs = now() - t0Fp;
 
       const t0Det = now();
@@ -91,9 +103,11 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
       let payload: IngestResponseData;
       let src: Source = 'backend';
       try {
-        const response = await sdk.flushIngest();
-        if (!response.ok || !hasDecision(response.data)) {
-          throw new Error(response.ok ? 'invalid response' : response.error);
+        const response = await flush();
+        if (!response || !response.ok || !hasDecision(response.data)) {
+          throw new Error(
+            response && !response.ok ? response.error : 'invalid response'
+          );
         }
         payload = response.data;
       } catch (e) {
@@ -111,14 +125,14 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
     }
   };
 
-  const collector = sdk.getBehavioralCollector();
   const isPass = result?.decision === 'PASS';
 
   return (
     <Card>
       <SectionTitle>Login</SectionTitle>
 
-      <TextInput
+      <TrackedTextInput
+        trackId="login-username"
         style={styles.input}
         value={username}
         onChangeText={setUsername}
@@ -126,11 +140,10 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
         autoCorrect={false}
         placeholder="Username"
         placeholderTextColor={colors.muted}
-        onFocus={() => collector?.inputTracker?.onFocus('login-username')}
-        onBlur={() => collector?.inputTracker?.onBlur('login-username')}
       />
 
-      <TextInput
+      <TrackedTextInput
+        trackId="login-password"
         style={styles.input}
         value={password}
         onChangeText={setPassword}
@@ -139,8 +152,6 @@ export function LoginDemo({ sdk }: { sdk: SokratechSDK }) {
         autoCorrect={false}
         placeholder="Password"
         placeholderTextColor={colors.muted}
-        onFocus={() => collector?.inputTracker?.onFocus('login-password')}
-        onBlur={() => collector?.inputTracker?.onBlur('login-password')}
       />
 
       <View style={styles.toggleRow}>

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import type { DetectionResult, SokratechSDK } from 'ppl-a4-sdk-react-native';
+import {
+  useDetection,
+  type DetectionResult,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
   Badge,
   Button,
@@ -13,21 +16,22 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
-export function DetectionDemo({ sdk }: { sdk: SokratechSDK }) {
+export function DetectionDemo() {
+  const { collector, detect } = useDetection();
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   const run = async () => {
     setLoading(true);
     try {
-      const next = await sdk.detect(true);
+      const next = await detect(true);
       setResult(next);
     } finally {
       setLoading(false);
     }
   };
 
-  const hasDetection = sdk.getDetectionCollector() !== null;
+  const hasDetection = collector !== null;
 
   return (
     <Card>

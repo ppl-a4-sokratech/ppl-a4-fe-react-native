@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { ProfileMetric, SokratechSDK } from 'ppl-a4-sdk-react-native';
+import {
+  useSokratech,
+  type ProfileMetric,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import { Badge, Button, Card, colors, Paragraph, SectionTitle } from './ui';
 
-export function ProfilingDemo({ sdk }: { sdk: SokratechSDK }) {
-  const [metrics, setMetrics] = useState<ProfileMetric[]>(() =>
-    sdk.getProfileMetrics()
+export function ProfilingDemo() {
+  const { sdk } = useSokratech();
+  const [metrics, setMetrics] = useState<ProfileMetric[]>(
+    () => sdk?.getProfileMetrics() ?? []
   );
 
-  const refresh = () => setMetrics([...sdk.getProfileMetrics()]);
+  const refresh = () => setMetrics([...(sdk?.getProfileMetrics() ?? [])]);
   const clear = () => {
-    sdk.clearProfileMetrics();
+    sdk?.clearProfileMetrics();
     setMetrics([]);
   };
 

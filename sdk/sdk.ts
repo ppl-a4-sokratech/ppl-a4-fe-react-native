@@ -1,4 +1,4 @@
-import { SokratechSDK, type SokratechConfig } from 'ppl-a4-sdk-react-native';
+import { SokratechSDK, type SokratechConfig } from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 
 const env = (process.env ?? {}) as Record<string, string | undefined>;
 

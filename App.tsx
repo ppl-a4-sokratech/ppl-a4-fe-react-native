@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -10,11 +10,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import type {
-  SokratechConfig,
-  SokratechSDK,
-} from 'ppl-a4-sdk-react-native';
-import { buildConfig, initSdk } from './sdk/sdk';
+import {
+  SokratechProvider,
+  useSokratech,
+  type SokratechConfig,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
+import { buildConfig } from './sdk/sdk';
 import { colors } from './components/ui';
 import { FingerprintDemo } from './components/FingerprintDemo';
 import { BehavioralDemo } from './components/BehavioralDemo';
@@ -43,26 +44,34 @@ const INITIAL_CONFIG: SokratechConfig = buildConfig({
 
 export default function App() {
   const [config, setConfig] = useState<SokratechConfig>(INITIAL_CONFIG);
-  const [sdk, setSdk] = useState<SokratechSDK | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [active, setActive] = useState<Tab>('config');
 
-  useEffect(() => {
-    let cancelled = false;
-    setInitError(null);
-    setSdk(null);
-    initSdk(config)
-      .then((instance) => {
-        if (!cancelled) setSdk(instance);
-      })
-      .catch((e) => {
-        if (!cancelled)
-          setInitError(e instanceof Error ? e.message : 'SDK init failed');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [config]);
+  return (
+    <SokratechProvider
+      config={config}
+      fallback={
+        <SafeAreaView style={styles.safe}>
+          <StatusBar barStyle="dark-content" />
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.loadingText}>
+              Initializing SDK and fetching recipes...
+            </Text>
+          </View>
+        </SafeAreaView>
+      }
+    >
+      <AppShell onApplyConfig={setConfig} />
+    </SokratechProvider>
+  );
+}
+
+function AppShell({
+  onApplyConfig,
+}: {
+  onApplyConfig: (config: SokratechConfig) => void;
+}) {
+  const { sdk, isInitialized, initError } = useSokratech();
+  const [active, setActive] = useState<Tab>('config');
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -72,7 +81,7 @@ export default function App() {
           <Text style={styles.title}>Sokratech SDK React Native Demo</Text>
           <View style={styles.metaRow}>
             <Text style={styles.meta}>
-              {sdk?.isInitialized() ? 'initialized' : 'initializing...'}
+              {isInitialized ? 'initialized' : 'initializing...'}
             </Text>
             <Text style={styles.meta}>platform: {Platform.OS}</Text>
           </View>
@@ -80,15 +89,8 @@ export default function App() {
 
         {initError && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>SDK init error: {initError}</Text>
-          </View>
-        )}
-
-        {!sdk && !initError && (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={styles.loadingText}>
-              Initializing SDK and fetching recipes...
+            <Text style={styles.errorText}>
+              SDK init error: {initError.message}
             </Text>
           </View>
         )}
@@ -110,7 +112,10 @@ export default function App() {
                     style={[styles.tab, isActive && styles.tabActive]}
                   >
                     <Text
-                      style={[styles.tabText, isActive && styles.tabTextActive]}
+                      style={[
+                        styles.tabText,
+                        isActive && styles.tabTextActive,
+                      ]}
                     >
                       {tab}
                     </Text>
@@ -121,14 +126,14 @@ export default function App() {
 
             <View style={styles.main}>
               {active === 'config' && (
-                <ConfigDemo sdk={sdk} onApplyConfig={setConfig} />
+                <ConfigDemo onApplyConfig={onApplyConfig} />
               )}
-              {active === 'behavioral' && <BehavioralDemo sdk={sdk} />}
-              {active === 'fingerprint' && <FingerprintDemo sdk={sdk} />}
-              {active === 'detection' && <DetectionDemo sdk={sdk} />}
-              {active === 'flush' && <FlushDemo sdk={sdk} />}
-              {active === 'login' && <LoginDemo sdk={sdk} />}
-              {active === 'profiling' && <ProfilingDemo sdk={sdk} />}
+              {active === 'behavioral' && <BehavioralDemo />}
+              {active === 'fingerprint' && <FingerprintDemo />}
+              {active === 'detection' && <DetectionDemo />}
+              {active === 'flush' && <FlushDemo />}
+              {active === 'login' && <LoginDemo />}
+              {active === 'profiling' && <ProfilingDemo />}
             </View>
           </>
         )}

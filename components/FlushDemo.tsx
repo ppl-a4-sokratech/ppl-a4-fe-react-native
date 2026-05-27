@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { IngestApiResponse, SokratechSDK } from 'ppl-a4-sdk-react-native';
+import { useFlushIngest } from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
   Badge,
   Button,
@@ -11,25 +11,16 @@ import {
   SectionTitle,
 } from './ui';
 
-export function FlushDemo({ sdk }: { sdk: SokratechSDK }) {
-  const [response, setResponse] = useState<IngestApiResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+export function FlushDemo() {
+  const { flush: sdkFlush, response, loading, error } = useFlushIngest();
   const [count, setCount] = useState(0);
-  const [thrownError, setThrownError] = useState<string | null>(null);
 
   const flush = async () => {
-    setLoading(true);
-    setThrownError(null);
-    try {
-      const next = await sdk.flushIngest();
-      setResponse(next);
-      setCount((c) => c + 1);
-    } catch (e) {
-      setThrownError(e instanceof Error ? `${e.name}: ${e.message}` : String(e));
-    } finally {
-      setLoading(false);
-    }
+    const next = await sdkFlush();
+    if (next) setCount((c) => c + 1);
   };
+
+  const thrownError = error ? `${error.name}: ${error.message}` : null;
 
   return (
     <Card>

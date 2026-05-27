@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import type {
-  CollectedFingerprint,
-  SokratechSDK,
-} from 'ppl-a4-sdk-react-native';
+import {
+  useFingerprint,
+  type CollectedFingerprint,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
   Badge,
   Button,
@@ -16,7 +16,8 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
-export function FingerprintDemo({ sdk }: { sdk: SokratechSDK }) {
+export function FingerprintDemo() {
+  const { collector, collect: sdkCollect } = useFingerprint();
   const [data, setData] = useState<CollectedFingerprint | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function FingerprintDemo({ sdk }: { sdk: SokratechSDK }) {
     setLoading(true);
     setError(null);
     try {
-      const result = await sdk.collectFingerprint(true);
+      const result = await sdkCollect(true);
       setData(result);
       if (!result) {
         setError('Fingerprint collector is disabled in the resolved config.');
@@ -37,7 +38,7 @@ export function FingerprintDemo({ sdk }: { sdk: SokratechSDK }) {
     }
   };
 
-  const hasFingerprint = sdk.getFingerprintCollector() !== null;
+  const hasFingerprint = collector !== null;
 
   return (
     <Card>

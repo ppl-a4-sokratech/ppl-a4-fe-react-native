@@ -1,6 +1,6 @@
 # Sokratech SDK React Native Demo
 
-End-to-end Proof of Concept consuming the [`ppl-a4-sdk-react-native`](https://github.com/ppl-a4-sokratech/ppl-a4-sdk-react-native) package on Web, Android, and iOS. Built with Expo SDK 54 + React Native 0.81.
+End-to-end Proof of Concept consuming the [`@ppl-sokratech-sdk/ppl-a4-sdk-react-native`](https://www.npmjs.com/package/@ppl-sokratech-sdk/ppl-a4-sdk-react-native) package on Web, Android, and iOS. Built with Expo SDK 54 + React Native 0.81.
 
 Sibling demo of the [`ppl-a4-fe-web`](https://github.com/ppl-a4-sokratech/ppl-a4-fe-web) (Next.js) and [`ppl-a4-fe-mobile`](https://github.com/ppl-a4-sokratech/ppl-a4-fe-mobile) (Flutter) PoCs.
 
@@ -9,20 +9,19 @@ Sibling demo of the [`ppl-a4-fe-web`](https://github.com/ppl-a4-sokratech/ppl-a4
 | Tab | What it does |
 |---|---|
 | **Config** | Enter workflow + profile IDs from the admin portal; SDK reinitializes via `initAsync` and fetches recipes from the backend. Leave blank to use local all-true recipes. |
-| **Behavioral** | Touchpad (tap / hold / drag), input fields, scroll view, simulated lifecycle (background ping), accelerometer + gyroscope (mobile only). Drain buffers the events into a single payload. |
-| **Fingerprint** | Collects device + screen + (web only) audio / canvas / graphics / fonts. |
+| **Behavioral** | Touchpad (tap / hold / drag) via `TrackedPressable`, text input via `TrackedTextInput`, scroll via `TrackedScrollView`, simulated lifecycle (background ping), accelerometer + gyroscope (mobile only). Drain buffers the events into a single payload. |
+| **Fingerprint** | Collects audio, canvas, graphics, fonts, device, screen. On mobile, canvas + fonts come from the SDK's native TurboModule (real Bitmap render, system fonts scan). |
 | **Detection** | Runs emulator detection on mobile and webDriver detection on web. |
 | **Flush** | Bundles behavioral + fingerprint + detection signals and POSTs to `/ingest`. Renders the backend decision. |
-| **Login** | Full login form with cached-fingerprint toggle, timing breakdown (behavioral / fingerprint / detect / fetch), and an ingest result panel matching the [`ppl-a4-fe-web`](https://github.com/ppl-a4-sokratech/ppl-a4-fe-web) login UX. Falls back to a mock decision when the backend is unreachable. |
+| **Login** | Full login form with cached-fingerprint toggle, timing breakdown (behavioral / fingerprint / detect / fetch), and an ingest result panel. Falls back to a mock decision when the backend is unreachable. |
 | **Profiling** | Lists SDK-internal timings recorded by the SDK `Profiler` (e.g. `sdk.initialize`, `fingerprint.collect`, `sdk.flushIngest`). |
 
 ## Prerequisites
 
 - Node.js 20+
 - npm
-- For Android: Android Studio + JDK 17 + SDK Platform 34 (only if you want to build a native dev client locally instead of using EAS)
-- For iOS: Xcode + macOS (only if you want to build locally; otherwise use EAS Build)
-- The SDK source must sit as a sibling folder at `../ppl-a4-sdk-react-native` — Metro is configured to resolve the package locally via this path.
+- For Android EAS dev client builds: `eas-cli` and an Expo account
+- For iOS: same plus an Apple ID
 
 ## Setup
 
@@ -39,7 +38,11 @@ Edit `.env`:
 EXPO_PUBLIC_SOKRATECH_API_DOMAIN=http://localhost:3000
 ```
 
-Point this at your local `ppl-a4-api-be`, or a staging URL. The workflow + profile IDs are entered at runtime in the Config tab, not via env vars.
+Point this at your local `ppl-a4-api-be`, or a staging URL. For physical mobile devices, replace `localhost` with the LAN IP of the machine running the backend.
+
+Workflow + profile IDs are entered at runtime in the Config tab, not via env vars.
+
+The SDK is consumed from npm as `@ppl-sokratech-sdk/ppl-a4-sdk-react-native`. Bumping the SDK version is a regular `npm install` of the new version.
 
 ## Run
 
@@ -53,34 +56,26 @@ Opens at `http://localhost:8081`. All surfaces work except sensors (mobile only)
 
 ### Android
 
-#### Option A: EAS dev client (recommended from Windows)
-
 ```bash
-npm install -g eas-cli
-eas login
-eas build --platform android --profile development
+npm run build:android       # eas build --platform android --profile development
 ```
 
-EAS builds an APK in the cloud that includes the native modules (`react-native-device-info`, `expo-sensors`, `react-native-get-random-values`). Install the APK on your device, then run Metro:
+This runs in the cloud (~10-15 min). Download the APK from the EAS link, install on device. Then:
 
 ```bash
 npx expo start --dev-client
 ```
 
-Open the installed dev client app, scan the Metro QR code or tap "Fetch development servers".
+Open the installed dev client app, scan the Metro QR code or tap "Fetch development servers". JS hot reload works.
 
-#### Option B: Local native build
+You need to re-run `npm run build:android` when:
+- SDK gets a new version published to npm (after `npm install @ppl-sokratech-sdk/ppl-a4-sdk-react-native@latest`)
+- New native dependencies added
+- Expo SDK version bumps
 
-```bash
-npx expo prebuild --platform android --clean
-npx expo run:android
-```
-
-Requires Android Studio + emulator or USB-connected device with debugging enabled. First run is slow (~10 minutes, downloads Gradle); subsequent runs are fast.
+For SDK JS-only changes (published to npm), only `npm install` + Metro restart needed.
 
 ### iOS
-
-#### Option A: EAS dev client (works from Windows)
 
 ```bash
 eas device:create               # register iPhone UDID once
@@ -89,11 +84,34 @@ eas build --platform ios --profile development
 
 Requires an Apple ID (free tier OK for personal device install; paid Apple Developer Program $99/year for TestFlight). After build, install the IPA via Safari and trust the developer profile in Settings → General → VPN & Device Management.
 
-#### Option B: Local native build (Mac only)
+## SDK development workflow
+
+If you also maintain the [SDK repo](https://github.com/ppl-a4-sokratech/ppl-a4-sdk-react-native) alongside this PoC:
+
+1. Make changes in the SDK repo
+2. Bump version + publish to npm:
+   ```bash
+   cd ppl-a4-sdk-react-native
+   npm version patch    # or minor / major
+   npm publish
+   ```
+3. In PoC, update to new version:
+   ```bash
+   cd ppl-a4-fe-react-native
+   npm install @ppl-sokratech-sdk/ppl-a4-sdk-react-native@latest
+   ```
+4. JS changes: Metro picks up. Native changes: `npm run build:android` for new APK.
+
+For faster iteration during heavy SDK development, you can use `npm link` instead of publishing every change:
 
 ```bash
-npx expo run:ios
+cd ppl-a4-sdk-react-native
+npm link
+cd ../ppl-a4-fe-react-native
+npm link @ppl-sokratech-sdk/ppl-a4-sdk-react-native
 ```
+
+Note: `npm link` only works for JS resolution; native module changes still need an APK rebuild via `eas build`.
 
 ## Configuration
 
@@ -101,35 +119,43 @@ npx expo run:ios
 
 The Config tab takes:
 
-- **Workflow ID** + **Profile ID** — UUIDs from the admin portal at `ppl-a4-fe-web`. When both are set, the SDK fetches the recipe from `GET /sdk/v1/config/:workflowId/:profileId`.
+- **Workflow ID** + **Profile ID** — UUIDs from the admin portal. When both are set, the SDK fetches the recipe from `GET /sdk/v1/config/:workflowId/:profileId`.
 
 ### Build-time config (env)
 
-Only one env var is supported. Everything else (workflow / profile IDs, ingest endpoint) is either entered at runtime or hardcoded in the SDK.
+Only one env var is supported.
 
 ```
 EXPO_PUBLIC_SOKRATECH_API_DOMAIN=<backend-domain>
 ```
 
-For physical devices, replace `localhost` with the LAN IP of the machine running the backend.
-
 ## Project structure
 
 ```
-App.tsx                         # tab bar + SDK init lifecycle
+App.tsx                         # SokratechProvider + tab bar
 index.ts                        # entry; polyfills crypto.getRandomValues
-sdk/sdk.ts                      # buildConfig helper + initSdk
+sdk/sdk.ts                      # buildConfig helper
 components/
-  ConfigDemo.tsx                # workflow/profile inputs + resolved state
-  BehavioralDemo.tsx            # touchpad, scroll, input, sensor
-  FingerprintDemo.tsx           # 6-surface display with web/native badges
-  DetectionDemo.tsx             # emulator + webDriver verdicts
-  FlushDemo.tsx                 # POST /ingest + decision render
+  ConfigDemo.tsx                # workflow/profile inputs (uses useSokratech)
+  BehavioralDemo.tsx            # TrackedPressable / TrackedTextInput / TrackedScrollView
+  FingerprintDemo.tsx           # 6-surface display
+  DetectionDemo.tsx             # emulator + webDriver verdicts (uses useDetection)
+  FlushDemo.tsx                 # POST /ingest (uses useFlushIngest)
   LoginDemo.tsx                 # cache toggle + timing + decision panel
   ProfilingDemo.tsx             # SDK internal metrics table
   ui.tsx                        # design tokens + shared primitives
-metro.config.js                 # local SDK resolution, dep dedup
+metro.config.js                 # default Expo config
 .env.example                    # EXPO_PUBLIC_SOKRATECH_API_DOMAIN only
 app.json                        # Expo config
-eas.json                        # EAS Build profiles (auto-generated)
+eas.json                        # EAS Build profiles
+```
+
+## Scripts
+
+```bash
+npm start                  # expo start
+npm run android            # expo start --android
+npm run ios                # expo start --ios
+npm run web                # expo start --web
+npm run build:android      # eas build android development
 ```

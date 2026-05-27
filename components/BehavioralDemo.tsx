@@ -1,20 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import {
-  AppState,
-  type AppStateStatus,
-  type GestureResponderEvent,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { Accelerometer, Gyroscope } from 'expo-sensors';
-import type { BehavioralPayload, SokratechSDK } from 'ppl-a4-sdk-react-native';
+  TrackedPressable,
+  TrackedScrollView,
+  TrackedTextInput,
+  useBehavioral,
+  useSokratech,
+  type BehavioralPayload,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
   Badge,
   Button,
@@ -28,75 +21,11 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
-function safeTouchId(raw: unknown): number {
-  const candidate = Number(raw);
-  return Number.isFinite(candidate) ? candidate : Date.now();
-}
-
-export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
-  const collector = sdk.getBehavioralCollector();
-  const touchIdRef = useRef(0);
-
+export function BehavioralDemo() {
+  const { sdk } = useSokratech();
+  const { collector, drain } = useBehavioral();
   const [payload, setPayload] = useState<BehavioralPayload | null>(null);
   const [drainCount, setDrainCount] = useState(0);
-  const [sensorActive, setSensorActive] = useState(false);
-
-  useEffect(() => {
-    const lifecycle = collector?.lifecycleTracker;
-    if (!lifecycle) return;
-    const subscription = AppState.addEventListener(
-      'change',
-      (next: AppStateStatus) => {
-        if (next === 'background' || next === 'inactive') {
-          lifecycle.onBackground();
-        } else if (next === 'active') {
-          lifecycle.onForeground();
-        }
-      }
-    );
-    return () => subscription.remove();
-  }, [collector]);
-
-  useEffect(() => {
-    if (isWeb) return;
-    const sensor = collector?.sensorTracker;
-    if (!sensor) return;
-
-    let cancelled = false;
-    let accelSub: { remove: () => void } | null = null;
-    let gyroSub: { remove: () => void } | null = null;
-
-    (async () => {
-      try {
-        const accelAvailable = await Accelerometer.isAvailableAsync();
-        const gyroAvailable = await Gyroscope.isAvailableAsync();
-        if (cancelled) return;
-
-        if (accelAvailable) {
-          Accelerometer.setUpdateInterval(250);
-          accelSub = Accelerometer.addListener(({ x, y, z }) => {
-            sensor.onAccelerometer(x, y, z);
-          });
-        }
-        if (gyroAvailable) {
-          Gyroscope.setUpdateInterval(250);
-          gyroSub = Gyroscope.addListener(({ x, y, z }) => {
-            sensor.onGyroscope(x, y, z);
-          });
-        }
-        if (accelAvailable || gyroAvailable) {
-          setSensorActive(true);
-        }
-      } catch {}
-    })();
-
-    return () => {
-      cancelled = true;
-      accelSub?.remove();
-      gyroSub?.remove();
-      setSensorActive(false);
-    };
-  }, [collector]);
 
   if (!collector) {
     return (
@@ -107,39 +36,20 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
     );
   }
 
-  const onPressIn = (e: GestureResponderEvent) => {
-    const t = e.nativeEvent;
-    const id = safeTouchId(t.identifier);
-    touchIdRef.current = id;
-    const ts = t.timestamp || Date.now();
-    collector.touchTracker?.onTouchStart(id, t.locationX, t.locationY, ts);
-    collector.dragTracker?.onDragStart(id, t.locationX, t.locationY, ts);
-  };
-
-  const onPressOut = (e: GestureResponderEvent) => {
-    const t = e.nativeEvent;
-    const id = safeTouchId(t.identifier);
-    const ts = t.timestamp || Date.now();
-    collector.touchTracker?.onTouchEnd(id, t.locationX, t.locationY, ts);
-    collector.dragTracker?.onDragEnd(id, t.locationX, t.locationY, ts);
-  };
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    collector.scrollTracker?.handleScroll(e.nativeEvent.contentOffset.y);
-  };
-
   const simulateLifecycle = () => {
     collector.lifecycleTracker?.onBackground();
     setTimeout(() => collector.lifecycleTracker?.onForeground(), 350);
   };
 
-  const drain = () => {
-    const result = sdk.drainBehavioralEvents();
+  const handleDrain = () => {
+    const result = drain();
     if (result) {
       setPayload(result);
       setDrainCount((c) => c + 1);
     }
   };
+
+  const sensorActive = !isWeb && collector.sensorTracker !== undefined;
 
   return (
     <View>
@@ -152,27 +62,22 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
           Interact below to record events, then drain the buffer.
         </Paragraph>
 
-        <Pressable
-          style={styles.touchpad}
-          onPressIn={onPressIn}
-          onPressOut={onPressOut}
-        >
+        <TrackedPressable style={styles.touchpad}>
           <Text style={styles.touchpadText}>Tap / hold / drag</Text>
           <Text style={styles.touchpadHint}>
             quick tap = tap, hold = longPress, swipe = drag
           </Text>
-        </Pressable>
+        </TrackedPressable>
 
-        <TextInput
+        <TrackedTextInput
+          trackId="behavioral-field"
           placeholder="Type here..."
           placeholderTextColor={colors.muted}
           style={styles.input}
-          onFocus={() => collector.inputTracker?.onFocus('demo-field')}
-          onBlur={() => collector.inputTracker?.onBlur('demo-field')}
         />
 
         <View style={styles.buttonRow}>
-          <Button label="Drain" onPress={drain} />
+          <Button label="Drain" onPress={handleDrain} />
           <Button
             label="Simulate background"
             variant="secondary"
@@ -203,18 +108,13 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
       <Card>
         <SectionTitle>Scroll</SectionTitle>
         <Paragraph>Scroll inside the box to record scroll events.</Paragraph>
-        <ScrollView
-          style={styles.scrollBox}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          nestedScrollEnabled
-        >
+        <TrackedScrollView style={styles.scrollBox} nestedScrollEnabled>
           {Array.from({ length: 20 }).map((_, i) => (
             <Text key={i} style={styles.scrollLine}>
               Line {i + 1}
             </Text>
           ))}
-        </ScrollView>
+        </TrackedScrollView>
       </Card>
 
       <Card>
@@ -231,12 +131,14 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
           {isWeb
             ? 'Sensors are mobile-only.'
             : sensorActive
-              ? 'Shake or tilt the device, then drain.'
+              ? 'Shake or tilt the device, then drain. SDK provider auto-wires accelerometer + gyroscope.'
               : 'Sensors not available on this device.'}
         </Paragraph>
       </Card>
     </View>
   );
+  // sdk is exposed via useSokratech but BehavioralDemo no longer needs it
+  void sdk;
 }
 
 const styles = StyleSheet.create({

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import type {
-  SokratechConfig,
-  SokratechSDK,
-} from 'ppl-a4-sdk-react-native';
+import {
+  useSokratech,
+  type SokratechConfig,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import { buildConfig } from '../sdk/sdk';
 import {
   Badge,
@@ -16,11 +16,12 @@ import {
 } from './ui';
 
 interface ConfigDemoProps {
-  sdk: SokratechSDK;
   onApplyConfig: (config: SokratechConfig) => void;
 }
 
-export function ConfigDemo({ sdk, onApplyConfig }: ConfigDemoProps) {
+export function ConfigDemo({ onApplyConfig }: ConfigDemoProps) {
+  const { sdk } = useSokratech();
+  if (!sdk) return null;
   const current = sdk.getConfig();
   const [workflowId, setWorkflowId] = useState(current.workflowId ?? '');
   const [profileId, setProfileId] = useState(current.profileId ?? '');
