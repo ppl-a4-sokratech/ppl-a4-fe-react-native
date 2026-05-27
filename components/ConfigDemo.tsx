@@ -22,14 +22,13 @@ interface ConfigDemoProps {
 
 export function ConfigDemo({ sdk, onApplyConfig }: ConfigDemoProps) {
   const current = sdk.getConfig();
-  const [apiDomain, setApiDomain] = useState(current.apiDomain);
   const [workflowId, setWorkflowId] = useState(current.workflowId ?? '');
   const [profileId, setProfileId] = useState(current.profileId ?? '');
 
   const usingRemote = Boolean(current.workflowId && current.profileId);
 
   const handleApply = () => {
-    onApplyConfig(buildConfig({ apiDomain, workflowId, profileId }));
+    onApplyConfig(buildConfig({ workflowId, profileId }));
   };
 
   return (
@@ -43,21 +42,10 @@ export function ConfigDemo({ sdk, onApplyConfig }: ConfigDemoProps) {
           />
         </View>
         <Paragraph>
-          Enter the API domain and workflow + profile IDs from the admin
-          portal. With both IDs set, the SDK fetches recipes from the backend.
-          Leave blank to use local defaults.
+          Enter workflow + profile IDs from the admin portal. With both set,
+          the SDK fetches recipes from the backend. Leave blank for local
+          defaults.
         </Paragraph>
-
-        <Text style={styles.fieldLabel}>API domain</Text>
-        <TextInput
-          style={styles.input}
-          value={apiDomain}
-          onChangeText={setApiDomain}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="http://localhost:3000"
-          placeholderTextColor={colors.muted}
-        />
 
         <Text style={styles.fieldLabel}>Workflow ID</Text>
         <TextInput
@@ -81,15 +69,14 @@ export function ConfigDemo({ sdk, onApplyConfig }: ConfigDemoProps) {
           placeholderTextColor={colors.muted}
         />
 
-        <Button label="Apply" onPress={handleApply} />
+        <View style={{ marginTop: 16 }}>
+          <Button label="Apply" onPress={handleApply} />
+        </View>
       </Card>
 
       <Card>
         <SectionTitle>Resolved</SectionTitle>
         <Paragraph>Active SDK config after the last init.</Paragraph>
-
-        <Text style={styles.label}>API domain</Text>
-        <Text style={styles.value}>{current.apiDomain}</Text>
 
         <Text style={styles.label}>Workflow / Profile</Text>
         <Text style={styles.value}>

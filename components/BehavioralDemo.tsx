@@ -6,6 +6,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -106,19 +107,21 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
     );
   }
 
-  const onTouchStart = (e: GestureResponderEvent) => {
+  const onPressIn = (e: GestureResponderEvent) => {
     const t = e.nativeEvent;
     const id = safeTouchId(t.identifier);
     touchIdRef.current = id;
-    collector.touchTracker?.onTouchStart(id, t.locationX, t.locationY, t.timestamp);
-    collector.dragTracker?.onDragStart(id, t.locationX, t.locationY, t.timestamp);
+    const ts = t.timestamp || Date.now();
+    collector.touchTracker?.onTouchStart(id, t.locationX, t.locationY, ts);
+    collector.dragTracker?.onDragStart(id, t.locationX, t.locationY, ts);
   };
 
-  const onTouchEnd = (e: GestureResponderEvent) => {
+  const onPressOut = (e: GestureResponderEvent) => {
     const t = e.nativeEvent;
     const id = safeTouchId(t.identifier);
-    collector.touchTracker?.onTouchEnd(id, t.locationX, t.locationY, t.timestamp);
-    collector.dragTracker?.onDragEnd(id, t.locationX, t.locationY, t.timestamp);
+    const ts = t.timestamp || Date.now();
+    collector.touchTracker?.onTouchEnd(id, t.locationX, t.locationY, ts);
+    collector.dragTracker?.onDragEnd(id, t.locationX, t.locationY, ts);
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -149,13 +152,16 @@ export function BehavioralDemo({ sdk }: { sdk: SokratechSDK }) {
           Interact below to record events, then drain the buffer.
         </Paragraph>
 
-        <View
+        <Pressable
           style={styles.touchpad}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
+          onPressIn={onPressIn}
+          onPressOut={onPressOut}
         >
           <Text style={styles.touchpadText}>Tap / hold / drag</Text>
-        </View>
+          <Text style={styles.touchpadHint}>
+            quick tap = tap, hold = longPress, swipe = drag
+          </Text>
+        </Pressable>
 
         <TextInput
           placeholder="Type here..."

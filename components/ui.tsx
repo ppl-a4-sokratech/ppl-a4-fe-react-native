@@ -111,11 +111,13 @@ export function Stat({ label, value }: { label: string; value: number | string }
 export function CodeBlock({ data }: { data: unknown }) {
   return (
     <ScrollView
-      horizontal
       style={styles.codeWrap}
       contentContainerStyle={styles.codeInner}
+      nestedScrollEnabled
     >
-      <Text style={styles.codeText}>{JSON.stringify(data, null, 2)}</Text>
+      <ScrollView horizontal contentContainerStyle={{ paddingRight: 12 }}>
+        <Text style={styles.codeText}>{JSON.stringify(data, null, 2)}</Text>
+      </ScrollView>
     </ScrollView>
   );
 }

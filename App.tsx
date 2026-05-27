@@ -14,15 +14,13 @@ import type {
   SokratechConfig,
   SokratechSDK,
 } from 'ppl-a4-sdk-react-native';
-import { buildConfig, defaultApiDomain, initSdk } from './sdk/sdk';
+import { buildConfig, initSdk } from './sdk/sdk';
 import { colors } from './components/ui';
 import { FingerprintDemo } from './components/FingerprintDemo';
 import { BehavioralDemo } from './components/BehavioralDemo';
 import { ProfilingDemo } from './components/ProfilingDemo';
 import { DetectionDemo } from './components/DetectionDemo';
-import { AnalyzerDemo } from './components/AnalyzerDemo';
 import { LoginDemo } from './components/LoginDemo';
-import { RegisterDemo } from './components/RegisterDemo';
 import { ConfigDemo } from './components/ConfigDemo';
 import { FlushDemo } from './components/FlushDemo';
 
@@ -32,8 +30,6 @@ const TABS = [
   'fingerprint',
   'detection',
   'flush',
-  'analyzer',
-  'register',
   'login',
   'profiling',
 ] as const;
@@ -41,7 +37,6 @@ const TABS = [
 type Tab = (typeof TABS)[number];
 
 const INITIAL_CONFIG: SokratechConfig = buildConfig({
-  apiDomain: defaultApiDomain,
   workflowId: '',
   profileId: '',
 });
@@ -74,10 +69,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Sokratech SDK</Text>
-          <Text style={styles.subtitle}>
-            React Native PoC with end-to-end backend ingest
-          </Text>
+          <Text style={styles.title}>Sokratech SDK React Native Demo</Text>
           <View style={styles.metaRow}>
             <Text style={styles.meta}>
               {sdk?.isInitialized() ? 'initialized' : 'initializing...'}
@@ -135,9 +127,7 @@ export default function App() {
               {active === 'fingerprint' && <FingerprintDemo sdk={sdk} />}
               {active === 'detection' && <DetectionDemo sdk={sdk} />}
               {active === 'flush' && <FlushDemo sdk={sdk} />}
-              {active === 'analyzer' && <AnalyzerDemo />}
-              {active === 'register' && <RegisterDemo />}
-              {active === 'login' && <LoginDemo />}
+              {active === 'login' && <LoginDemo sdk={sdk} />}
               {active === 'profiling' && <ProfilingDemo sdk={sdk} />}
             </View>
           </>
@@ -148,14 +138,17 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
+  },
   content: { padding: 16, maxWidth: 760, width: '100%', alignSelf: 'center' },
   header: { marginBottom: 16, alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: '800', color: colors.text },
-  subtitle: {
-    fontSize: 13,
-    color: colors.muted,
-    marginTop: 4,
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
     textAlign: 'center',
   },
   metaRow: { flexDirection: 'row', gap: 14, marginTop: 8 },

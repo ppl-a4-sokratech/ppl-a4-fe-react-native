@@ -28,7 +28,6 @@ const LOCAL_RECIPES = {
 } as const;
 
 export function buildConfig(input: {
-  apiDomain: string;
   workflowId: string;
   profileId: string;
 }): SokratechConfig {
@@ -36,7 +35,7 @@ export function buildConfig(input: {
   const profileId = input.profileId.trim();
   const hasRemote = workflowId.length > 0 && profileId.length > 0;
   return {
-    apiDomain: input.apiDomain.trim() || defaultApiDomain,
+    apiDomain: defaultApiDomain,
     workflowId: hasRemote ? workflowId : undefined,
     profileId: hasRemote ? profileId : undefined,
     recipes: hasRemote ? undefined : LOCAL_RECIPES,

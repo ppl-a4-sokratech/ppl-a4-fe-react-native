@@ -15,13 +15,17 @@ export function FlushDemo({ sdk }: { sdk: SokratechSDK }) {
   const [response, setResponse] = useState<IngestApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
+  const [thrownError, setThrownError] = useState<string | null>(null);
 
   const flush = async () => {
     setLoading(true);
+    setThrownError(null);
     try {
       const next = await sdk.flushIngest();
       setResponse(next);
       setCount((c) => c + 1);
+    } catch (e) {
+      setThrownError(e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     } finally {
       setLoading(false);
     }
@@ -48,6 +52,10 @@ export function FlushDemo({ sdk }: { sdk: SokratechSDK }) {
         onPress={flush}
         disabled={loading}
       />
+
+      {thrownError && (
+        <Text style={styles.errorText}>{thrownError}</Text>
+      )}
 
       {response && (
         <View style={{ marginTop: 8 }}>
