@@ -1,35 +1,48 @@
-import { SokratechSDK, type SokratechConfig } from 'ppl-a4-sdk-react-native';
+import { SokratechSDK, type SokratechConfig } from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 
-export const sdkConfig: SokratechConfig = {
-  apiKey: 'demo-api-key-12345',
-  apiDomain: 'https://api.sokratech.example',
-  recipes: {
-    fingerprint: {
-      enabled: true,
-      audio: true,
-      canvas: true,
-      hardware: true,
-      network: true,
-      screen: true,
-    },
-    behavioral: {
-      enabled: true,
-      touch: true,
-      keyboard: true,
-      scroll: true,
-    },
-    detection: {
-      enabled: true,
-      emulator: true,
-      rooted: true,
-      vpn: true,
-    },
-  },
-  profiling: {
+const env = (process.env ?? {}) as Record<string, string | undefined>;
+
+export const defaultApiDomain =
+  env.EXPO_PUBLIC_SOKRATECH_API_DOMAIN ?? 'http://localhost:3000';
+
+const LOCAL_RECIPES = {
+  behavioral: {
     enabled: true,
+    touch: true,
+    drag: true,
+    scroll: true,
+    lifecycle: true,
+    input: true,
+    sensor: true,
   },
-};
+  fingerprint: {
+    enabled: true,
+    audio: true,
+    canvas: true,
+    graphics: true,
+    fonts: true,
+    device: true,
+    screen: true,
+  },
+  detection: { enabled: true, emulator: true, webDriver: true },
+} as const;
 
-// Single shared SDK instance for the whole PoC. The same profiler is reused
-// by every demo so the Profiling tab shows metrics from all operations.
-export const sdk = SokratechSDK.init(sdkConfig);
+export function buildConfig(input: {
+  workflowId: string;
+  profileId: string;
+}): SokratechConfig {
+  const workflowId = input.workflowId.trim();
+  const profileId = input.profileId.trim();
+  const hasRemote = workflowId.length > 0 && profileId.length > 0;
+  return {
+    apiDomain: defaultApiDomain,
+    workflowId: hasRemote ? workflowId : undefined,
+    profileId: hasRemote ? profileId : undefined,
+    recipes: hasRemote ? undefined : LOCAL_RECIPES,
+    profiling: { enabled: true },
+  };
+}
+
+export function initSdk(config: SokratechConfig): Promise<SokratechSDK> {
+  return SokratechSDK.initAsync(config);
+}

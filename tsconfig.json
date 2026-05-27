@@ -1,10 +1,6 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "ppl-a4-sdk-react-native": ["../ppl-a4-sdk-react-native/src/index"]
-    }
+    "strict": true
   }
 }

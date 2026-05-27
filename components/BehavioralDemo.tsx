@@ -1,22 +1,15 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import {
-  type GestureResponderEvent,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import {
-  InputTracker,
-  ScrollTracker,
-  TouchTracker,
+  TrackedPressable,
+  TrackedScrollView,
+  TrackedTextInput,
+  useBehavioral,
+  useSokratech,
   type BehavioralPayload,
-} from 'ppl-a4-sdk-react-native';
-import { sdk } from '../sdk/sdk';
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
+  Badge,
   Button,
   Card,
   CodeBlock,
@@ -26,87 +19,86 @@ import {
   Stat,
 } from './ui';
 
-export function BehavioralDemo() {
-  const touch = useRef(new TouchTracker()).current;
-  const scroll = useRef(new ScrollTracker().start()).current;
-  const input = useRef(new InputTracker().start()).current;
+const isWeb = Platform.OS === 'web';
 
+export function BehavioralDemo() {
+  const { sdk } = useSokratech();
+  const { collector, drain } = useBehavioral();
   const [payload, setPayload] = useState<BehavioralPayload | null>(null);
   const [drainCount, setDrainCount] = useState(0);
 
-  const onTouchStart = (e: GestureResponderEvent) => {
-    const t = e.nativeEvent;
-    touch.onTouchStart(Number(t.identifier), t.locationX, t.locationY, t.timestamp);
-  };
-  const onTouchEnd = (e: GestureResponderEvent) => {
-    const t = e.nativeEvent;
-    touch.onTouchEnd(Number(t.identifier), t.locationX, t.locationY, t.timestamp);
-  };
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    scroll.handleScroll(e.nativeEvent.contentOffset.y);
+  if (!collector) {
+    return (
+      <Card>
+        <SectionTitle>Behavioral</SectionTitle>
+        <Paragraph>Recipe disabled.</Paragraph>
+      </Card>
+    );
+  }
+
+  const simulateLifecycle = () => {
+    collector.lifecycleTracker?.onBackground();
+    setTimeout(() => collector.lifecycleTracker?.onForeground(), 350);
   };
 
-  const drain = () => {
-    sdk.profiler.start('behavioral.drain');
-    const result: BehavioralPayload = {
-      touchEvents: touch.drain(),
-      scrollEvents: scroll.drain(),
-      inputEvents: input.drain(),
-      dragEvents: [],
-      lifecycleEvents: [],
-      sensorEvents: [],
-      capturedAt: Date.now(),
-    };
-    sdk.profiler.end('behavioral.drain', {
-      events:
-        result.touchEvents.length +
-        result.scrollEvents.length +
-        result.inputEvents.length,
-    });
-    setPayload(result);
-    setDrainCount((c) => c + 1);
+  const handleDrain = () => {
+    const result = drain();
+    if (result) {
+      setPayload(result);
+      setDrainCount((c) => c + 1);
+    }
   };
+
+  const sensorActive = !isWeb && collector.sensorTracker !== undefined;
 
   return (
     <View>
       <Card>
-        <SectionTitle>Behavioral Tracking</SectionTitle>
+        <View style={styles.titleRow}>
+          <SectionTitle>Behavioral</SectionTitle>
+          <Badge label="SDK collector" tone="success" />
+        </View>
         <Paragraph>
-          SDK menangkap event tap/touch, scroll, dan fokus input secara
-          real-time lewat TouchTracker, ScrollTracker, dan InputTracker. Sentuh
-          area di bawah, scroll halaman, dan ketik di field, lalu tekan Drain.
+          Interact below to record events, then drain the buffer.
         </Paragraph>
 
-        <View
-          style={styles.touchpad}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <Text style={styles.touchpadText}>
-            Tap / tahan / geser di area ini
+        <TrackedPressable style={styles.touchpad}>
+          <Text style={styles.touchpadText}>Tap / hold / drag</Text>
+          <Text style={styles.touchpadHint}>
+            quick tap = tap, hold = longPress, swipe = drag
           </Text>
-        </View>
+        </TrackedPressable>
 
-        <TextInput
-          placeholder="Ketik sesuatu di sini…"
+        <TrackedTextInput
+          trackId="behavioral-field"
+          placeholder="Type here..."
           placeholderTextColor={colors.muted}
           style={styles.input}
-          onFocus={() => input.onFocus('demo-field')}
-          onBlur={() => input.onBlur('demo-field')}
         />
 
-        <Button label="Drain Events" onPress={drain} />
+        <View style={styles.buttonRow}>
+          <Button label="Drain" onPress={handleDrain} />
+          <Button
+            label="Simulate background"
+            variant="secondary"
+            onPress={simulateLifecycle}
+          />
+        </View>
 
         {payload && (
           <View style={{ marginTop: 8 }}>
             <Text style={styles.subheading}>
-              Drain #{drainCount} —{' '}
-              {new Date(payload.capturedAt).toLocaleTimeString()}
+              Drain #{drainCount} ({new Date(payload.capturedAt).toLocaleTimeString()})
             </Text>
             <View style={styles.statRow}>
               <Stat label="Touch" value={payload.touchEvents.length} />
+              <Stat label="Drag" value={payload.dragEvents.length} />
               <Stat label="Scroll" value={payload.scrollEvents.length} />
               <Stat label="Input" value={payload.inputEvents.length} />
+            </View>
+            <View style={styles.statRow}>
+              <Stat label="Lifecycle" value={payload.lifecycleEvents.length} />
+              <Stat label="Sensor" value={payload.sensorEvents.length} />
             </View>
             <CodeBlock data={payload} />
           </View>
@@ -114,28 +106,48 @@ export function BehavioralDemo() {
       </Card>
 
       <Card>
-        <SectionTitle>Scroll Capture Area</SectionTitle>
-        <Paragraph>
-          Scroll di dalam kotak ini untuk menghasilkan scroll event yang
-          ditangkap ScrollTracker.
-        </Paragraph>
-        <ScrollView
-          style={styles.scrollBox}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-        >
+        <SectionTitle>Scroll</SectionTitle>
+        <Paragraph>Scroll inside the box to record scroll events.</Paragraph>
+        <TrackedScrollView style={styles.scrollBox} nestedScrollEnabled>
           {Array.from({ length: 20 }).map((_, i) => (
             <Text key={i} style={styles.scrollLine}>
-              Baris {i + 1} — scroll naik turun di sini
+              Line {i + 1}
             </Text>
           ))}
-        </ScrollView>
+        </TrackedScrollView>
+      </Card>
+
+      <Card>
+        <View style={styles.titleRow}>
+          <SectionTitle>Sensor</SectionTitle>
+          <Badge
+            label={
+              isWeb ? 'web: skipped' : sensorActive ? 'active' : 'unavailable'
+            }
+            tone={sensorActive ? 'success' : 'neutral'}
+          />
+        </View>
+        <Paragraph>
+          {isWeb
+            ? 'Sensors are mobile-only.'
+            : sensorActive
+              ? 'Shake or tilt the device, then drain. SDK provider auto-wires accelerometer + gyroscope.'
+              : 'Sensors not available on this device.'}
+        </Paragraph>
       </Card>
     </View>
   );
+  // sdk is exposed via useSokratech but BehavioralDemo no longer needs it
+  void sdk;
 }
 
 const styles = StyleSheet.create({
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   touchpad: {
     height: 130,
     borderRadius: 12,
@@ -146,8 +158,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+    paddingHorizontal: 12,
   },
-  touchpadText: { color: colors.primary, fontWeight: '600' },
+  touchpadText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
+  touchpadHint: {
+    color: colors.primary,
+    fontSize: 11,
+    marginTop: 6,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -158,6 +178,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 14,
   },
+  buttonRow: { flexDirection: 'row', flexWrap: 'wrap' },
   subheading: {
     fontSize: 14,
     fontWeight: '700',
@@ -171,9 +192,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
   },
-  scrollLine: {
-    color: colors.muted,
-    fontSize: 13,
-    paddingVertical: 8,
-  },
+  scrollLine: { color: colors.muted, fontSize: 13, paddingVertical: 8 },
 });

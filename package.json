@@ -6,16 +6,22 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:android": "eas build --platform android --profile development"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.33",
+    "expo-dev-client": "~6.0.21",
+    "expo-sensors": "~15.0.8",
     "expo-status-bar": "~3.0.9",
+    "@ppl-sokratech-sdk/ppl-a4-sdk-react-native": "^0.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-device-info": "^15.0.2",
+    "react-native-get-random-values": "^2.0.0",
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {

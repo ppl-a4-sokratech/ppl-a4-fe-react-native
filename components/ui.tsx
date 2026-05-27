@@ -111,11 +111,13 @@ export function Stat({ label, value }: { label: string; value: number | string }
 export function CodeBlock({ data }: { data: unknown }) {
   return (
     <ScrollView
-      horizontal
       style={styles.codeWrap}
       contentContainerStyle={styles.codeInner}
+      nestedScrollEnabled
     >
-      <Text style={styles.codeText}>{JSON.stringify(data, null, 2)}</Text>
+      <ScrollView horizontal contentContainerStyle={{ paddingRight: 12 }}>
+        <Text style={styles.codeText}>{JSON.stringify(data, null, 2)}</Text>
+      </ScrollView>
     </ScrollView>
   );
 }
@@ -137,16 +139,13 @@ export function ComingSoon({
       </View>
       <Paragraph>{description}</Paragraph>
       <View style={styles.soonBox}>
-        <Text style={styles.soonBoxTitle}>Planned SDK integration</Text>
+        <Text style={styles.soonBoxTitle}>Planned</Text>
         {bullets.map((b) => (
           <Text key={b} style={styles.soonBullet}>
             {'•'}  {b}
           </Text>
         ))}
       </View>
-      <Text style={styles.soonNote}>
-        UI sudah siap. Hook ke SDK menyusul setelah modul ini diimplementasikan.
-      </Text>
     </Card>
   );
 }
