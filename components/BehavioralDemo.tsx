@@ -1,28 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import {
-  AppState,
-  type AppStateStatus,
-  type GestureResponderEvent,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { Accelerometer, Gyroscope } from 'expo-sensors';
-import {
-  DragTracker,
-  InputTracker,
-  LifecycleTracker,
-  ScrollTracker,
-  SensorTracker,
-  TouchTracker,
-} from 'ppl-a4-sdk-react-native/behavioral';
-import type { BehavioralPayload } from 'ppl-a4-sdk-react-native/behavioral/types';
-import { sdk } from '../sdk/sdk';
+  TrackedPressable,
+  TrackedScrollView,
+  TrackedTextInput,
+  useBehavioral,
+  useSokratech,
+  type BehavioralPayload,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
   Badge,
   Button,
@@ -36,167 +21,65 @@ import {
 
 const isWeb = Platform.OS === 'web';
 
-function safeTouchId(raw: unknown): number {
-  const candidate = Number(raw);
-  return Number.isFinite(candidate) ? candidate : Date.now();
-}
-
 export function BehavioralDemo() {
-  const touch = useRef(new TouchTracker()).current;
-  const scroll = useRef(new ScrollTracker().start()).current;
-  const input = useRef(new InputTracker().start()).current;
-  const drag = useRef(new DragTracker()).current;
-  const lifecycle = useRef(new LifecycleTracker()).current;
-  const sensor = useRef(new SensorTracker({ throttleMs: 250 })).current;
-
+  const { sdk } = useSokratech();
+  const { collector, drain } = useBehavioral();
   const [payload, setPayload] = useState<BehavioralPayload | null>(null);
   const [drainCount, setDrainCount] = useState(0);
-  const [sensorActive, setSensorActive] = useState(false);
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener(
-      'change',
-      (next: AppStateStatus) => {
-        if (next === 'background' || next === 'inactive') {
-          lifecycle.onBackground();
-        } else if (next === 'active') {
-          lifecycle.onForeground();
-        }
-      }
+  if (!collector) {
+    return (
+      <Card>
+        <SectionTitle>Behavioral</SectionTitle>
+        <Paragraph>Recipe disabled.</Paragraph>
+      </Card>
     );
-    return () => subscription.remove();
-  }, [lifecycle]);
-
-  useEffect(() => {
-    if (isWeb) return;
-
-    let cancelled = false;
-    let accelSub: { remove: () => void } | null = null;
-    let gyroSub: { remove: () => void } | null = null;
-
-    (async () => {
-      try {
-        const accelAvailable = await Accelerometer.isAvailableAsync();
-        const gyroAvailable = await Gyroscope.isAvailableAsync();
-        if (cancelled) return;
-
-        if (accelAvailable) {
-          Accelerometer.setUpdateInterval(250);
-          accelSub = Accelerometer.addListener(({ x, y, z }) => {
-            sensor.onAccelerometer(x, y, z);
-          });
-        }
-        if (gyroAvailable) {
-          Gyroscope.setUpdateInterval(250);
-          gyroSub = Gyroscope.addListener(({ x, y, z }) => {
-            sensor.onGyroscope(x, y, z);
-          });
-        }
-        if (accelAvailable || gyroAvailable) {
-          sensor.start();
-          setSensorActive(true);
-        }
-      } catch {}
-    })();
-
-    return () => {
-      cancelled = true;
-      accelSub?.remove();
-      gyroSub?.remove();
-      sensor.stop();
-      setSensorActive(false);
-    };
-  }, [sensor]);
-
-  const onTouchStart = (e: GestureResponderEvent) => {
-    const t = e.nativeEvent;
-    const id = safeTouchId(t.identifier);
-    touch.onTouchStart(id, t.locationX, t.locationY, t.timestamp);
-    drag.onDragStart(id, t.locationX, t.locationY, t.timestamp);
-  };
-
-  const onTouchEnd = (e: GestureResponderEvent) => {
-    const t = e.nativeEvent;
-    const id = safeTouchId(t.identifier);
-    touch.onTouchEnd(id, t.locationX, t.locationY, t.timestamp);
-    drag.onDragEnd(id, t.locationX, t.locationY, t.timestamp);
-  };
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    scroll.handleScroll(e.nativeEvent.contentOffset.y);
-  };
+  }
 
   const simulateLifecycle = () => {
-    lifecycle.onBackground();
-    setTimeout(() => lifecycle.onForeground(), 350);
+    collector.lifecycleTracker?.onBackground();
+    setTimeout(() => collector.lifecycleTracker?.onForeground(), 350);
   };
 
-  const drain = () => {
-    sdk.profiler.start('behavioral.drain');
-    const result: BehavioralPayload = {
-      touchEvents: touch.drain(),
-      scrollEvents: scroll.drain(),
-      inputEvents: input.drain(),
-      dragEvents: drag.drain(),
-      lifecycleEvents: lifecycle.drain(),
-      sensorEvents: sensor.drain(),
-      capturedAt: Date.now(),
-    };
-    sdk.profiler.end('behavioral.drain', {
-      events:
-        result.touchEvents.length +
-        result.scrollEvents.length +
-        result.inputEvents.length +
-        result.dragEvents.length +
-        result.lifecycleEvents.length +
-        result.sensorEvents.length,
-    });
-    setPayload(result);
-    setDrainCount((c) => c + 1);
+  const handleDrain = () => {
+    const result = drain();
+    if (result) {
+      setPayload(result);
+      setDrainCount((c) => c + 1);
+    }
   };
+
+  const sensorActive = !isWeb && collector.sensorTracker !== undefined;
 
   return (
     <View>
       <Card>
         <View style={styles.titleRow}>
-          <SectionTitle>Behavioral Tracking</SectionTitle>
-          <Badge
-            label={isWeb ? 'Web ready' : 'Mobile ready'}
-            tone={isWeb ? 'neutral' : 'success'}
-          />
+          <SectionTitle>Behavioral</SectionTitle>
+          <Badge label="SDK collector" tone="success" />
         </View>
         <Paragraph>
-          SDK menangkap touch, drag, scroll, input focus, lifecycle, dan
-          sensor. Touch/scroll/input dipakai dua-duanya di web dan mobile;
-          drag/lifecycle/sensor di-wire khusus untuk mobile (sensor pakai
-          accelerometer + gyroscope).
+          Interact below to record events, then drain the buffer.
         </Paragraph>
 
-        <View
-          style={styles.touchpad}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <Text style={styles.touchpadText}>
-            Tap / tahan / geser di area ini
-          </Text>
+        <TrackedPressable style={styles.touchpad}>
+          <Text style={styles.touchpadText}>Tap / hold / drag</Text>
           <Text style={styles.touchpadHint}>
-            Tap singkat = tap, tahan {'>'}300ms = longPress, geser {'>'}18px = drag
+            quick tap = tap, hold = longPress, swipe = drag
           </Text>
-        </View>
+        </TrackedPressable>
 
-        <TextInput
-          placeholder="Ketik sesuatu di sini…"
+        <TrackedTextInput
+          trackId="behavioral-field"
+          placeholder="Type here..."
           placeholderTextColor={colors.muted}
           style={styles.input}
-          onFocus={() => input.onFocus('demo-field')}
-          onBlur={() => input.onBlur('demo-field')}
         />
 
         <View style={styles.buttonRow}>
-          <Button label="Drain Events" onPress={drain} />
+          <Button label="Drain" onPress={handleDrain} />
           <Button
-            label="Simulate Background"
+            label="Simulate background"
             variant="secondary"
             onPress={simulateLifecycle}
           />
@@ -205,8 +88,7 @@ export function BehavioralDemo() {
         {payload && (
           <View style={{ marginTop: 8 }}>
             <Text style={styles.subheading}>
-              Drain #{drainCount} —{' '}
-              {new Date(payload.capturedAt).toLocaleTimeString()}
+              Drain #{drainCount} ({new Date(payload.capturedAt).toLocaleTimeString()})
             </Text>
             <View style={styles.statRow}>
               <Stat label="Touch" value={payload.touchEvents.length} />
@@ -215,10 +97,7 @@ export function BehavioralDemo() {
               <Stat label="Input" value={payload.inputEvents.length} />
             </View>
             <View style={styles.statRow}>
-              <Stat
-                label="Lifecycle"
-                value={payload.lifecycleEvents.length}
-              />
+              <Stat label="Lifecycle" value={payload.lifecycleEvents.length} />
               <Stat label="Sensor" value={payload.sensorEvents.length} />
             </View>
             <CodeBlock data={payload} />
@@ -227,49 +106,39 @@ export function BehavioralDemo() {
       </Card>
 
       <Card>
-        <SectionTitle>Scroll Capture Area</SectionTitle>
-        <Paragraph>
-          Scroll di dalam kotak ini untuk menghasilkan scroll event yang
-          ditangkap ScrollTracker.
-        </Paragraph>
-        <ScrollView
-          style={styles.scrollBox}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          nestedScrollEnabled
-        >
+        <SectionTitle>Scroll</SectionTitle>
+        <Paragraph>Scroll inside the box to record scroll events.</Paragraph>
+        <TrackedScrollView style={styles.scrollBox} nestedScrollEnabled>
           {Array.from({ length: 20 }).map((_, i) => (
             <Text key={i} style={styles.scrollLine}>
-              Baris {i + 1} — scroll naik turun di sini
+              Line {i + 1}
             </Text>
           ))}
-        </ScrollView>
+        </TrackedScrollView>
       </Card>
 
       <Card>
         <View style={styles.titleRow}>
-          <SectionTitle>Sensor Stream</SectionTitle>
+          <SectionTitle>Sensor</SectionTitle>
           <Badge
             label={
-              isWeb
-                ? 'Web: skipped'
-                : sensorActive
-                  ? 'Active'
-                  : 'Unavailable'
+              isWeb ? 'web: skipped' : sensorActive ? 'active' : 'unavailable'
             }
             tone={sensorActive ? 'success' : 'neutral'}
           />
         </View>
         <Paragraph>
           {isWeb
-            ? 'Sensor accelerometer/gyroscope mobile-only — di web di-skip.'
+            ? 'Sensors are mobile-only.'
             : sensorActive
-              ? 'Accelerometer dan gyroscope sampling ~4Hz lewat expo-sensors. Goyangkan perangkat 3-5 detik lalu Drain.'
-              : 'Sensor tidak tersedia di perangkat ini (atau emulator tanpa sensor virtual).'}
+              ? 'Shake or tilt the device, then drain. SDK provider auto-wires accelerometer + gyroscope.'
+              : 'Sensors not available on this device.'}
         </Paragraph>
       </Card>
     </View>
   );
+  // sdk is exposed via useSokratech but BehavioralDemo no longer needs it
+  void sdk;
 }
 
 const styles = StyleSheet.create({
@@ -323,9 +192,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
   },
-  scrollLine: {
-    color: colors.muted,
-    fontSize: 13,
-    paddingVertical: 8,
-  },
+  scrollLine: { color: colors.muted, fontSize: 13, paddingVertical: 8 },
 });

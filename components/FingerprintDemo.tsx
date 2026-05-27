@@ -1,18 +1,9 @@
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import {
-  getAudioFingerprint,
-  getCanvasFingerprint,
-  getHardwareData,
-  getNetworkData,
-  getScreenData,
-} from 'ppl-a4-sdk-react-native';
-import {
-  getMobileHardwareData,
-  getMobileNetworkData,
-  getMobileScreenData,
-} from '../shim/fingerprint-mobile';
-import { sdk } from '../sdk/sdk';
+  useFingerprint,
+  type CollectedFingerprint,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import {
   Badge,
   Button,
@@ -23,19 +14,11 @@ import {
   SectionTitle,
 } from './ui';
 
-type Fingerprint = {
-  timestamp: number;
-  audio: unknown;
-  canvas: unknown;
-  hardware: unknown;
-  network: unknown;
-  screen: unknown;
-};
-
 const isWeb = Platform.OS === 'web';
 
 export function FingerprintDemo() {
-  const [data, setData] = useState<Fingerprint | null>(null);
+  const { collector, collect: sdkCollect } = useFingerprint();
+  const [data, setData] = useState<CollectedFingerprint | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,13 +26,11 @@ export function FingerprintDemo() {
     setLoading(true);
     setError(null);
     try {
-      sdk.profiler.start('fingerprint.collect');
-      const result = isWeb ? await collectWeb() : await collectMobile();
-      sdk.profiler.end('fingerprint.collect', {
-        platform: Platform.OS,
-        surfaces: isWeb ? 5 : 3,
-      });
+      const result = await sdkCollect(true);
       setData(result);
+      if (!result) {
+        setError('Fingerprint collector is disabled in the resolved config.');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to collect fingerprint');
     } finally {
@@ -57,104 +38,59 @@ export function FingerprintDemo() {
     }
   };
 
+  const hasFingerprint = collector !== null;
+
   return (
     <Card>
       <View style={styles.titleRow}>
-        <SectionTitle>Fingerprint Collection</SectionTitle>
+        <SectionTitle>Fingerprint</SectionTitle>
         <Badge
-          label={isWeb ? 'Web surfaces' : 'Mobile shim'}
-          tone={isWeb ? 'neutral' : 'success'}
+          label={isWeb ? 'web' : 'native'}
+          tone={hasFingerprint ? 'success' : 'neutral'}
         />
       </View>
-      <Paragraph>
-        {isWeb
-          ? 'Web: audio context + canvas + navigator/screen data lewat SDK fingerprint primitives.'
-          : 'Mobile: hardware + network + screen lewat expo-device + Dimensions (audio/canvas tidak tersedia native).'}
-      </Paragraph>
+      <Paragraph>Collect device fingerprint via SDK.</Paragraph>
 
       <Button
-        label={loading ? 'Collecting…' : 'Collect Fingerprint'}
+        label={loading ? 'Collecting...' : 'Collect'}
         onPress={collect}
-        disabled={loading}
+        disabled={loading || !hasFingerprint}
       />
 
-      {error && <Text style={styles.error}>Error: {error}</Text>}
+      {error && <Text style={styles.error}>{error}</Text>}
 
       {data && (
         <View style={{ marginTop: 8 }}>
           <Text style={styles.subheading}>
             Collected at {new Date(data.timestamp).toLocaleTimeString()}
           </Text>
-          <Component title="Audio" value={data.audio} platformOnly={isWeb ? null : 'web'} />
-          <Component title="Canvas" value={data.canvas} platformOnly={isWeb ? null : 'web'} />
-          <Component title="Hardware" value={data.hardware} />
-          <Component title="Network" value={data.network} />
-          <Component title="Screen" value={data.screen} />
+          <Surface title="Audio" value={data.audio} />
+          <Surface title="Canvas" value={data.canvas} />
+          <Surface title="Graphics" value={data.graphics} />
+          <Surface title="Fonts" value={data.fonts} />
+          <Surface title="Device" value={data.device} />
+          <Surface title="Screen" value={data.screen} />
         </View>
       )}
     </Card>
   );
 }
 
-async function collectWeb(): Promise<Fingerprint> {
-  const [audio, canvas] = await Promise.all([
-    getAudioFingerprint(),
-    getCanvasFingerprint(),
-  ]);
-  return {
-    timestamp: Date.now(),
-    audio,
-    canvas,
-    hardware: getHardwareData(),
-    network: getNetworkData(),
-    screen: getScreenData(),
-  };
-}
-
-async function collectMobile(): Promise<Fingerprint> {
-  return {
-    timestamp: Date.now(),
-    audio: null,
-    canvas: null,
-    hardware: getMobileHardwareData(),
-    network: getMobileNetworkData(),
-    screen: getMobileScreenData(),
-  };
-}
-
-function Component({
-  title,
-  value,
-  platformOnly,
-}: {
-  title: string;
-  value: unknown;
-  platformOnly?: 'web' | 'mobile' | null;
-}) {
+function Surface({ title, value }: { title: string; value: unknown }) {
   const available = value !== null && value !== undefined;
   return (
-    <View style={styles.component}>
-      <View style={styles.componentHeader}>
-        <Text style={styles.componentTitle}>{title}</Text>
+    <View style={styles.surface}>
+      <View style={styles.surfaceHeader}>
+        <Text style={styles.surfaceTitle}>{title}</Text>
         <Badge
-          label={
-            available
-              ? 'OK'
-              : platformOnly === 'web'
-                ? 'Web-only'
-                : 'N/A'
-          }
+          label={available ? 'OK' : 'N/A'}
           tone={available ? 'success' : 'neutral'}
         />
       </View>
       {available ? (
         <CodeBlock data={value} />
       ) : (
-        <Text style={styles.naText}>
-          {platformOnly === 'web'
-            ? 'Surface ini butuh Web API (audio context / canvas) yang tidak tersedia di native.'
-            : 'Not available on this platform'}
-        </Text>
+        <Text style={styles.naText}>Not available on this platform.</Text>
       )}
     </View>
   );
@@ -174,17 +110,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
-  component: {
+  surface: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: 12,
     marginTop: 12,
   },
-  componentHeader: {
+  surfaceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  componentTitle: { fontSize: 14, fontWeight: '600', color: colors.primary },
+  surfaceTitle: { fontSize: 14, fontWeight: '600', color: colors.primary },
   naText: { fontSize: 13, color: colors.muted, marginTop: 6 },
 });

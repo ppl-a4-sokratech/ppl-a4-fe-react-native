@@ -1,26 +1,28 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { ProfileMetric } from 'ppl-a4-sdk-react-native';
-import { sdk } from '../sdk/sdk';
+import {
+  useSokratech,
+  type ProfileMetric,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
 import { Badge, Button, Card, colors, Paragraph, SectionTitle } from './ui';
 
 export function ProfilingDemo() {
-  const [metrics, setMetrics] = useState<ProfileMetric[]>(() =>
-    sdk.getProfileMetrics()
+  const { sdk } = useSokratech();
+  const [metrics, setMetrics] = useState<ProfileMetric[]>(
+    () => sdk?.getProfileMetrics() ?? []
   );
 
-  const refresh = () => setMetrics([...sdk.getProfileMetrics()]);
+  const refresh = () => setMetrics([...(sdk?.getProfileMetrics() ?? [])]);
   const clear = () => {
-    sdk.clearProfileMetrics();
+    sdk?.clearProfileMetrics();
     setMetrics([]);
   };
 
   return (
     <Card>
-      <SectionTitle>SDK Performance Profiling</SectionTitle>
+      <SectionTitle>Profiling</SectionTitle>
       <Paragraph>
-        Mencatat timing tiap operasi internal SDK (inisialisasi, fingerprint
-        collect, behavioral drain). Picu aksi di tab lain lalu refresh di sini.
+        Internal SDK timings. Trigger actions in other tabs, then refresh.
       </Paragraph>
 
       <View style={styles.toolbar}>
@@ -33,10 +35,7 @@ export function ProfilingDemo() {
 
       {metrics.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Belum ada metric.</Text>
-          <Text style={styles.emptyHint}>
-            Jalankan operasi di tab Fingerprint atau Behavioral, lalu Refresh.
-          </Text>
+          <Text style={styles.emptyText}>No metrics yet.</Text>
         </View>
       ) : (
         <View style={styles.table}>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   SafeAreaView,
@@ -9,93 +10,150 @@ import {
   Text,
   View,
 } from 'react-native';
-import { sdk } from './sdk/sdk';
+import {
+  SokratechProvider,
+  useSokratech,
+  type SokratechConfig,
+} from '@ppl-sokratech-sdk/ppl-a4-sdk-react-native';
+import { buildConfig } from './sdk/sdk';
 import { colors } from './components/ui';
 import { FingerprintDemo } from './components/FingerprintDemo';
 import { BehavioralDemo } from './components/BehavioralDemo';
 import { ProfilingDemo } from './components/ProfilingDemo';
 import { DetectionDemo } from './components/DetectionDemo';
-import { AnalyzerDemo } from './components/AnalyzerDemo';
 import { LoginDemo } from './components/LoginDemo';
-import { RegisterDemo } from './components/RegisterDemo';
+import { ConfigDemo } from './components/ConfigDemo';
+import { FlushDemo } from './components/FlushDemo';
 
 const TABS = [
+  'config',
   'behavioral',
   'fingerprint',
   'detection',
-  'analyzer',
-  'register',
+  'flush',
   'login',
   'profiling',
 ] as const;
 
 type Tab = (typeof TABS)[number];
 
+const INITIAL_CONFIG: SokratechConfig = buildConfig({
+  workflowId: '',
+  profileId: '',
+});
+
 export default function App() {
-  const [active, setActive] = useState<Tab>('behavioral');
+  const [config, setConfig] = useState<SokratechConfig>(INITIAL_CONFIG);
+
+  return (
+    <SokratechProvider
+      config={config}
+      fallback={
+        <SafeAreaView style={styles.safe}>
+          <StatusBar barStyle="dark-content" />
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.loadingText}>
+              Initializing SDK and fetching recipes...
+            </Text>
+          </View>
+        </SafeAreaView>
+      }
+    >
+      <AppShell onApplyConfig={setConfig} />
+    </SokratechProvider>
+  );
+}
+
+function AppShell({
+  onApplyConfig,
+}: {
+  onApplyConfig: (config: SokratechConfig) => void;
+}) {
+  const { sdk, isInitialized, initError } = useSokratech();
+  const [active, setActive] = useState<Tab>('config');
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Sokratech SDK</Text>
-          <Text style={styles.subtitle}>
-            PoC React Native — Behavioral, Fingerprint & Profiling
-          </Text>
+          <Text style={styles.title}>Sokratech SDK React Native Demo</Text>
           <View style={styles.metaRow}>
             <Text style={styles.meta}>
-              {sdk.isInitialized() ? '● initialized' : '○ not initialized'}
+              {isInitialized ? 'initialized' : 'initializing...'}
             </Text>
             <Text style={styles.meta}>platform: {Platform.OS}</Text>
           </View>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabBar}
-          contentContainerStyle={styles.tabBarInner}
-        >
-          {TABS.map((tab) => {
-            const isActive = tab === active;
-            return (
-              <Pressable
-                key={tab}
-                onPress={() => setActive(tab)}
-                style={[styles.tab, isActive && styles.tabActive]}
-              >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {initError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>
+              SDK init error: {initError.message}
+            </Text>
+          </View>
+        )}
 
-        <View style={styles.main}>
-          {active === 'behavioral' && <BehavioralDemo />}
-          {active === 'fingerprint' && <FingerprintDemo />}
-          {active === 'detection' && <DetectionDemo />}
-          {active === 'analyzer' && <AnalyzerDemo />}
-          {active === 'register' && <RegisterDemo />}
-          {active === 'login' && <LoginDemo />}
-          {active === 'profiling' && <ProfilingDemo />}
-        </View>
+        {sdk && (
+          <>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabBar}
+              contentContainerStyle={styles.tabBarInner}
+            >
+              {TABS.map((tab) => {
+                const isActive = tab === active;
+                return (
+                  <Pressable
+                    key={tab}
+                    onPress={() => setActive(tab)}
+                    style={[styles.tab, isActive && styles.tabActive]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        isActive && styles.tabTextActive,
+                      ]}
+                    >
+                      {tab}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.main}>
+              {active === 'config' && (
+                <ConfigDemo onApplyConfig={onApplyConfig} />
+              )}
+              {active === 'behavioral' && <BehavioralDemo />}
+              {active === 'fingerprint' && <FingerprintDemo />}
+              {active === 'detection' && <DetectionDemo />}
+              {active === 'flush' && <FlushDemo />}
+              {active === 'login' && <LoginDemo />}
+              {active === 'profiling' && <ProfilingDemo />}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
+  },
   content: { padding: 16, maxWidth: 760, width: '100%', alignSelf: 'center' },
   header: { marginBottom: 16, alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: '800', color: colors.text },
-  subtitle: {
-    fontSize: 13,
-    color: colors.muted,
-    marginTop: 4,
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
     textAlign: 'center',
   },
   metaRow: { flexDirection: 'row', gap: 14, marginTop: 8 },
@@ -119,4 +177,13 @@ const styles = StyleSheet.create({
   },
   tabTextActive: { color: '#fff' },
   main: { width: '100%' },
+  loading: { alignItems: 'center', padding: 24, gap: 12 },
+  loadingText: { fontSize: 13, color: colors.muted, textAlign: 'center' },
+  errorBanner: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600' },
 });
