@@ -9,7 +9,13 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SOKRATECH_API_DOMAIN": "http://15.232.87.132:3000"
+      }
     },
     "production": {
       "autoIncrement": true
